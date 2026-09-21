@@ -13,6 +13,7 @@ import { terrainHeight } from '../world/TerrainHeight';
 import { Player, type SpawnPoint } from '../player/Player';
 import { PlayerController } from '../player/PlayerController';
 import { PlayerVisual } from '../player/PlayerVisual';
+import { SnowEffects } from '../effects/SnowEffects';
 import { FollowCamera } from '../camera/FollowCamera';
 import { HUD } from '../ui/HUD';
 import { TrickHUD } from '../ui/TrickHUD';
@@ -37,6 +38,7 @@ export class Game {
   private readonly player: Player;
   private readonly playerController: PlayerController;
   private readonly playerVisual: PlayerVisual;
+  private readonly snowEffects: SnowEffects;
   private readonly followCamera: FollowCamera;
   private readonly hud: HUD;
   private readonly trickHud: TrickHUD;
@@ -73,6 +75,7 @@ export class Game {
 
     this.playerVisual = new PlayerVisual();
     this.renderer.scene.add(this.playerVisual.group);
+    this.snowEffects = new SnowEffects(this.renderer.scene);
 
     this.playerController = new PlayerController(this.player, this.input);
     this.followCamera = new FollowCamera(this.renderer.camera, this.course.occluders);
@@ -287,7 +290,9 @@ export class Game {
       tilt,
       this.player.airRotationX,
       this.player.airRotationZ,
+      this.player.lean,
     );
+    this.snowEffects.update(dt, this.player);
     this.followCamera.update(position, this.player.heading, this.player.getSpeed(), dt);
     this.lighting.update(position);
     this.hud.update(this.player);

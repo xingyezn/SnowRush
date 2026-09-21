@@ -363,17 +363,17 @@
 - [ ] Better Terrain Color
 - [ ] Better Lighting
 - [ ] Fog Tuning
-- [ ] Character Lean
-- [ ] Board Lean
+- [x] Character Lean
+- [x] Board Lean
 
 ---
 
 ## 2. Snow Effects
 
-- [ ] Snow Trail
-- [ ] Turning Snow Spray
-- [ ] Landing Burst
-- [ ] Environment Snow
+- [x] Snow Trail
+- [x] Turning Snow Spray
+- [x] Landing Burst
+- [x] Environment Snow
 
 ---
 

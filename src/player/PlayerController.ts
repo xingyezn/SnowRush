@@ -56,6 +56,9 @@ export class PlayerController {
         p.turnSpeedMinFactor + (p.turnSpeedAtMaxFactor - p.turnSpeedMinFactor) * speedRatio;
       this.player.heading -= turnInput * p.turnSpeed * turnFactor * dt;
 
+      const targetLean = -turnInput * p.maxLean * Math.min(speed / 20, 1);
+      this.player.lean += (targetLean - this.player.lean) * (1 - Math.exp(-p.leanRate * dt));
+
       const forwardX = -Math.sin(this.player.heading);
       const forwardZ = -Math.cos(this.player.heading);
       let dirX = speed > 0.01 ? velocity.x / speed : forwardX;
@@ -108,6 +111,7 @@ export class PlayerController {
     const flipInput = accelInput - brakeInput; // W = frontflip, S = backflip
     this.player.airRotationX -= flipInput * p.airFlipSpeed * dt;
     this.player.airTime += dt;
+    this.player.lean += (0 - this.player.lean) * (1 - Math.exp(-p.leanRate * dt));
 
     let dirX = velocity.x;
     let dirZ = velocity.z;

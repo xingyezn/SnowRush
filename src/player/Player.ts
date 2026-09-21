@@ -37,6 +37,8 @@ export class Player {
   airRotationY = 0;
   airRotationZ = 0;
   airTime = 0;
+  /** Visual board lean into the current turn (radians). */
+  lean = 0;
 
   constructor(physics: PhysicsWorld, spawn: SpawnPoint) {
     this.spawn = { ...spawn };

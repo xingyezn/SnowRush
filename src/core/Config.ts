@@ -182,6 +182,9 @@ export const CONFIG = {
     groundRayPadding: 0.15,
     capsuleHalfHeight: 0.5,
     capsuleRadius: 0.35,
+    /** Visual board lean into turns (radians) and how fast it settles. */
+    maxLean: 0.35,
+    leanRate: 8,
     colliderFriction: 0.3,
     density: 1,
     linearDamping: 0,
@@ -212,6 +215,14 @@ export const CONFIG = {
     speedUnitFactor: 3.6,
   },
 
+  effects: {
+    trailCapacity: 900,
+    burstCapacity: 400,
+    ambientCapacity: 600,
+    ambientRate: 70,
+    ambientRadius: 55,
+  },
+
   colors: {
     sky: 0xa8d5f2,
     fog: 0xa8d5f2,
@@ -230,6 +241,7 @@ export const CONFIG = {
     checkpoint: 0x2fa8d9,
     ramp: 0xe8742a,
     rampSide: 0xb8551a,
+    snowParticle: 0xffffff,
     finish: 0xf2c14e,
     boundaryPost: 0x6b4a2f,
     boundaryRail: 0xd93b3b,
