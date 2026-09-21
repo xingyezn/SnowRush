@@ -18,6 +18,7 @@ export class PlayerVisual {
   private mixer: THREE.AnimationMixer | null = null;
   private readonly actions: Partial<Record<RiderAnimation, THREE.AnimationAction>> = {};
   private currentAnimation: RiderAnimation | null = null;
+  private readonly pose: Array<{ bone: THREE.Bone; x: number; y: number; z: number }> = [];
 
   constructor(rider: RiderAsset | null) {
     const p = CONFIG.player;
@@ -56,7 +57,47 @@ export class PlayerVisual {
     if (jump) this.actions.jump = this.mixer.clipAction(jump);
     if (death) this.actions.death = this.mixer.clipAction(death);
 
+    this.buildRidingPose(rider.container);
     this.setAnimation('idle');
+  }
+
+  /**
+   * Layered on top of the idle clip every frame: a crouched riding stance plus
+   * a helmet and goggles attached to the head bone.
+   */
+  private buildRidingPose(root: THREE.Object3D): void {
+    const p = CONFIG.player;
+    const bone = (name: string) => root.getObjectByName(name) as THREE.Bone | undefined;
+
+    const add = (name: string, x = 0, y = 0, z = 0) => {
+      const target = bone(name);
+      if (target) this.pose.push({ bone: target, x, y, z });
+    };
+
+    add('Torso', p.riderTorsoLean);
+    add('UpperLegL', -p.riderKneeBend * 0.35);
+    add('UpperLegR', -p.riderKneeBend * 0.35);
+    add('LowerLegL', p.riderKneeBend);
+    add('LowerLegR', p.riderKneeBend);
+
+    const head = bone('Head');
+    if (!head) return;
+
+    const helmet = new THREE.Mesh(
+      new THREE.SphereGeometry(0.3, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.6),
+      new THREE.MeshStandardMaterial({ color: CONFIG.colors.helmet, roughness: 0.55, flatShading: true }),
+    );
+    helmet.position.set(0, 0.14, 0);
+    helmet.castShadow = true;
+    head.add(helmet);
+
+    const goggles = new THREE.Mesh(
+      new THREE.BoxGeometry(0.42, 0.14, 0.12),
+      new THREE.MeshStandardMaterial({ color: 0x151a20, roughness: 0.3, metalness: 0.2, flatShading: true }),
+    );
+    goggles.position.set(0, 0.18, 0.3);
+    goggles.castShadow = true;
+    head.add(goggles);
   }
 
   private buildPrimitiveRider(boardTop: number): void {
@@ -97,7 +138,14 @@ export class PlayerVisual {
   }
 
   update(dt: number): void {
-    this.mixer?.update(dt);
+    if (!this.mixer) return;
+    this.mixer.update(dt);
+    // Re-apply the riding stance on top of the freshly sampled animation pose.
+    for (const entry of this.pose) {
+      if (entry.x) entry.bone.rotateX(entry.x);
+      if (entry.y) entry.bone.rotateY(entry.y);
+      if (entry.z) entry.bone.rotateZ(entry.z);
+    }
   }
 
   sync(position: THREE.Vector3, heading: number, tilt = 0, pitch = 0, roll = 0, lean = 0): void {

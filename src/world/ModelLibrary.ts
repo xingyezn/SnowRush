@@ -29,12 +29,8 @@ export interface ModelLibrary {
   rider: RiderAsset | null;
 }
 
-const TREE_URLS = [
-  'models/pine_snow1.fbx',
-  'models/pine_snow2.fbx',
-  'models/pine1.fbx',
-  'models/pine2.fbx',
-];
+// Weighted toward the plain (green) pines; one snow-capped variant for variety.
+const TREE_URLS = ['models/pine1.fbx', 'models/pine2.fbx', 'models/pine1.fbx', 'models/pine_snow1.fbx'];
 const ROCK_URLS = ['models/rock1.fbx', 'models/rock2.fbx', 'models/rock3.fbx'];
 const BUSH_URLS = ['models/bush1.fbx', 'models/bush2.fbx', 'models/bush3.fbx'];
 const RIDER_URL = 'models/rider.fbx';
@@ -66,16 +62,37 @@ function collectParts(
     produced.push(sub);
   };
 
-  if (materials.length > 1 && groups.length > 0 && index) {
+  if (materials.length > 1 && groups.length > 0) {
     for (const group of groups) {
-      const sub = geometry.clone();
-      sub.clearGroups();
-      sub.setIndex(
-        new THREE.BufferAttribute(
-          (index.array as unknown as number[]).slice(group.start, group.start + group.count) as never,
-          1,
-        ),
-      );
+      const sub = new THREE.BufferGeometry();
+      for (const name of Object.keys(geometry.attributes)) {
+        const attribute = geometry.attributes[name] as THREE.BufferAttribute;
+        const itemSize = attribute.itemSize;
+        if (index) {
+          sub.setAttribute(name, attribute.clone());
+        } else {
+          // Non-indexed: group ranges address vertices directly.
+          const array = (attribute.array as unknown as number[]).slice(
+            group.start * itemSize,
+            (group.start + group.count) * itemSize,
+          );
+          sub.setAttribute(
+            name,
+            new THREE.BufferAttribute(array as never, itemSize, attribute.normalized),
+          );
+        }
+      }
+      if (index) {
+        sub.setIndex(
+          new THREE.BufferAttribute(
+            (index.array as unknown as number[]).slice(
+              group.start,
+              group.start + group.count,
+            ) as never,
+            1,
+          ),
+        );
+      }
       push(materials[group.materialIndex ?? 0], sub);
     }
     return produced;
@@ -160,19 +177,33 @@ function tint(asset: ModelAsset, color: number): ModelAsset {
   return asset;
 }
 
+/** Recolours only the named materials (keeps e.g. snow white). */
+function tintByName(asset: ModelAsset, map: Record<string, number>): ModelAsset {
+  for (const part of asset.parts) {
+    const color = map[part.material.name];
+    if (color === undefined) continue;
+    const material = part.material.clone();
+    if ('color' in material) (material as THREE.MeshStandardMaterial).color.setHex(color);
+    part.material = material;
+  }
+  return asset;
+}
+
 async function loadGroup(
   loader: FBXLoader,
   urls: string[],
   targetHeight: number,
   fallbackColor: number,
-  tintColor?: number,
+  options: { tint?: number; tintMap?: Record<string, number> } = {},
 ): Promise<ModelAsset[]> {
   const assets: ModelAsset[] = [];
   for (const url of urls) {
     try {
       const object = await loader.loadAsync(url);
-      const asset = normalise(object, targetHeight);
-      assets.push(tintColor === undefined ? asset : tint(asset, tintColor));
+      let asset = normalise(object, targetHeight);
+      if (options.tint !== undefined) asset = tint(asset, options.tint);
+      if (options.tintMap) asset = tintByName(asset, options.tintMap);
+      assets.push(asset);
     } catch (error) {
       console.warn(`SnowRush: could not load ${url}, using fallback`, error);
       assets.push(fallbackAsset(fallbackColor, targetHeight));
@@ -237,14 +268,12 @@ export function createFallbackLibrary(): ModelLibrary {
 export async function loadModelLibrary(): Promise<ModelLibrary> {
   const loader = new FBXLoader();
   const [trees, rocks, bushes, rider] = await Promise.all([
-    loadGroup(loader, TREE_URLS, CONFIG.course.trees.visualHeight, CONFIG.colors.treeFoliage),
-    loadGroup(
-      loader,
-      ROCK_URLS,
-      CONFIG.course.rocks.visualHeight,
-      CONFIG.colors.rock,
-      CONFIG.colors.rock,
-    ),
+    loadGroup(loader, TREE_URLS, CONFIG.course.trees.visualHeight, CONFIG.colors.treeFoliage, {
+      tintMap: { Green: CONFIG.colors.pineGreen, Brown: CONFIG.colors.treeTrunk },
+    }),
+    loadGroup(loader, ROCK_URLS, CONFIG.course.rocks.visualHeight, CONFIG.colors.rock, {
+      tint: CONFIG.colors.rock,
+    }),
     loadGroup(loader, BUSH_URLS, CONFIG.course.bushes.visualHeight, CONFIG.colors.treeFoliage),
     loadRider(loader),
   ]);

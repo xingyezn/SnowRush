@@ -202,6 +202,9 @@ export const CONFIG = {
     /** Animated rider model: target height and yaw correction (radians). */
     riderHeight: 1.78,
     riderYaw: Math.PI,
+    /** Riding stance layered on top of the idle animation (radians). */
+    riderTorsoLean: 0.12,
+    riderKneeBend: 0.25,
     colliderFriction: 0.3,
     density: 1,
     linearDamping: 0,
@@ -268,6 +271,7 @@ export const CONFIG = {
     helmet: 0x1f2933,
     treeTrunk: 0x6b4a2f,
     treeFoliage: 0x2f5d3a,
+    pineGreen: 0x2e7d46,
     snowCap: 0xf7fbff,
     rock: 0x7b8794,
     gate: 0xd93b3b,
