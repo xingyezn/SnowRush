@@ -359,10 +359,10 @@
 
 ## 1. Visual
 
-- [ ] Low-poly Mountain Background
-- [ ] Better Terrain Color
-- [ ] Better Lighting
-- [ ] Fog Tuning
+- [x] Low-poly Mountain Background
+- [x] Better Terrain Color
+- [x] Better Lighting
+- [x] Fog Tuning
 - [x] Character Lean
 - [x] Board Lean
 

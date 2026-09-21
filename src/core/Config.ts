@@ -13,14 +13,24 @@ export const CONFIG = {
   render: {
     maxPixelRatio: 2,
     cameraNear: 0.1,
-    cameraFar: 3000,
-    fogNear: 120,
-    fogFar: 720,
+    cameraFar: 6000,
+    fogNear: 100,
+    fogFar: 700,
+  },
+
+  mountains: {
+    count: 80,
+    minRadius: 2200,
+    maxRadius: 3600,
+    baseY: -100,
+    minHeight: 400,
+    maxHeight: 900,
+    color: 0xbcd4e8,
   },
 
   light: {
-    hemiIntensity: 0.85,
-    sunIntensity: 1.7,
+    hemiIntensity: 0.72,
+    sunIntensity: 2.1,
     shadowMapSize: 2048,
     shadowRadius: 70,
     shadowFar: 600,
@@ -235,6 +245,7 @@ export const CONFIG = {
     groundLight: 0xffffff,
     sun: 0xfff6e5,
     snow: 0xf4f8fc,
+    snowSteep: 0xb6c8da,
     board: 0x2b6cb0,
     jacket: 0xe05a2b,
     helmet: 0x1f2933,

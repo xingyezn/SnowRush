@@ -3,7 +3,7 @@ import * as RAPIER from '@dimforge/rapier3d';
 import { CONFIG } from '../core/Config';
 import type { PhysicsWorld } from '../physics/PhysicsWorld';
 import { buildHeightFieldData } from './HeightFieldData';
-import { terrainHeight } from './TerrainHeight';
+import { terrainHeight, terrainNormalComponents } from './TerrainHeight';
 
 /**
  * Procedural snow terrain.
@@ -22,15 +22,30 @@ export class Terrain {
     geometry.rotateX(-Math.PI / 2);
 
     const position = geometry.getAttribute('position') as THREE.BufferAttribute;
+    // Steeper faces (valley walls, wave crests) are tinted toward rock/ice.
+    const vertexColors = new Float32Array(position.count * 3);
+    const snowColor = new THREE.Color(CONFIG.colors.snow);
+    const steepColor = new THREE.Color(CONFIG.colors.snowSteep);
+    const mixed = new THREE.Color();
     for (let i = 0; i < position.count; i++) {
-      position.setY(i, terrainHeight(position.getX(i), position.getZ(i)));
+      const x = position.getX(i);
+      const z = position.getZ(i);
+      position.setY(i, terrainHeight(x, z));
+
+      const normal = terrainNormalComponents(x, z);
+      const steep = 1 - THREE.MathUtils.smoothstep(normal.y, 0.5, 0.92);
+      mixed.copy(snowColor).lerp(steepColor, steep);
+      vertexColors[i * 3] = mixed.r;
+      vertexColors[i * 3 + 1] = mixed.g;
+      vertexColors[i * 3 + 2] = mixed.b;
     }
     position.needsUpdate = true;
+    geometry.setAttribute('color', new THREE.BufferAttribute(vertexColors, 3));
     geometry.computeVertexNormals();
     geometry.computeBoundingSphere();
 
     const material = new THREE.MeshStandardMaterial({
-      color: CONFIG.colors.snow,
+      vertexColors: true,
       roughness: 0.95,
       metalness: 0,
       flatShading: true,

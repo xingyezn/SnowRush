@@ -8,6 +8,7 @@ import { PhysicsWorld } from '../physics/PhysicsWorld';
 import { Lighting } from '../world/Lighting';
 import { Terrain } from '../world/Terrain';
 import { Boundary } from '../world/Boundary';
+import { MountainBackdrop } from '../world/MountainBackdrop';
 import { CourseGenerator } from '../world/CourseGenerator';
 import { terrainHeight } from '../world/TerrainHeight';
 import { Player, type SpawnPoint } from '../player/Player';
@@ -69,6 +70,7 @@ export class Game {
 
     this.terrain = new Terrain(this.physics, this.renderer.scene);
     this.boundary = new Boundary(this.physics, this.renderer.scene);
+    new MountainBackdrop(this.renderer.scene);
     this.course = new CourseGenerator(this.physics, this.renderer.scene);
     this.player = new Player(this.physics, this.createSpawnPoint());
     this.startSpawn = { ...this.player.spawn };
