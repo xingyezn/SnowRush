@@ -293,23 +293,23 @@
 
 ## 3. Trick Recognition
 
-- [ ] Frontflip
-- [ ] Backflip
-- [ ] Double Frontflip
-- [ ] Double Backflip
-- [ ] 360
-- [ ] 720
-- [ ] 1080
-- [ ] Trick Combination
+- [x] Frontflip
+- [x] Backflip
+- [x] Double Frontflip
+- [x] Double Backflip
+- [x] 360
+- [x] 720
+- [x] 1080
+- [x] Trick Combination
 
 ---
 
 ## 4. Landing Evaluation
 
-- [ ] Safe Landing
-- [ ] Hard Landing
-- [ ] Crash Landing
-- [ ] Landing Angle Calculation
+- [x] Safe Landing
+- [x] Hard Landing
+- [x] Crash Landing
+- [x] Landing Angle Calculation
 
 ---
 

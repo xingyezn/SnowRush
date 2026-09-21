@@ -20,6 +20,7 @@ import { CollisionSystem } from '../systems/CollisionSystem';
 import { CheckpointSystem } from '../systems/CheckpointSystem';
 import { ScoreSystem } from '../systems/ScoreSystem';
 import { Timer } from '../systems/Timer';
+import { TrickSystem, type LandingResult } from '../systems/TrickSystem';
 
 /**
  * Orchestrator: creates systems, owns GameState and schedules updates.
@@ -42,6 +43,7 @@ export class Game {
   private readonly loop: GameLoop;
   private readonly collisionSystem: CollisionSystem;
   private readonly checkpointSystem: CheckpointSystem;
+  private readonly trickSystem: TrickSystem;
   private readonly scoreSystem = new ScoreSystem();
   private readonly timer = new Timer();
   private readonly startSpawn: SpawnPoint;
@@ -76,6 +78,7 @@ export class Game {
     this.resultScreen = new ResultScreen(container);
 
     this.checkpointSystem = new CheckpointSystem(this.player, this.startSpawn);
+    this.trickSystem = new TrickSystem(this.player, { onLanded: this.handleLanded });
     this.collisionSystem = new CollisionSystem(this.physics, this.course, {
       onCrash: this.handleCrash,
       onGate: this.handleGate,
@@ -142,8 +145,18 @@ export class Game {
     this.state = GameState.Crashed;
     this.crashTimer = CONFIG.crash.respawnDelay;
     this.crashElapsed = 0;
+    this.trickSystem.cancel();
     this.player.crash();
     this.hud.setMessage('CRASHED');
+  };
+
+  private readonly handleLanded = (result: LandingResult): void => {
+    if (this.state !== GameState.Playing) return;
+    if (result.quality === 'crash') {
+      this.handleCrash();
+      return;
+    }
+    // Trick scoring and the trick HUD are added in the next step.
   };
 
   private readonly handleGate = (): void => {
@@ -198,6 +211,7 @@ export class Game {
       this.playerController.update(dt);
       this.physics.step();
       this.collisionSystem.update();
+      this.trickSystem.update();
       this.timer.update(dt);
       return;
     }

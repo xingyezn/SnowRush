@@ -132,6 +132,20 @@ export const CONFIG = {
     gateScore: 50,
   },
 
+  trick: {
+    /** Air time below this never counts as a trick. */
+    minAirTime: 0.25,
+    /** Landing angle (degrees off upright) thresholds. */
+    safeLandingAngle: 35,
+    hardLandingAngle: 60,
+    hardLandingScoreFactor: 0.5,
+    /** Multiplier applied to the Nth trick of a combo streak. */
+    comboMultipliers: [1, 1.2, 1.5, 2, 3],
+    /** Indexed by completed rotation count (0 = none). */
+    spinScore: [0, 300, 700, 1500],
+    flipScore: [0, 500, 1200, 2000],
+  },
+
   timer: {
     countdownSeconds: 3,
   },

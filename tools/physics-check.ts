@@ -15,6 +15,12 @@ import type { InputAction, InputState } from '../src/core/InputManager';
 import { PhysicsWorld } from '../src/physics/PhysicsWorld';
 import { Player } from '../src/player/Player';
 import { PlayerController } from '../src/player/PlayerController';
+import {
+  evaluateLanding,
+  recognizeTricks,
+  TrickSystem,
+  type LandingResult,
+} from '../src/systems/TrickSystem';
 import { buildHeightFieldData } from '../src/world/HeightFieldData';
 import { CourseGenerator } from '../src/world/CourseGenerator';
 import { JumpRampField } from '../src/world/JumpRamp';
@@ -281,7 +287,82 @@ function check(label: string, condition: boolean, detail: string): void {
   );
 }
 
-// --- Scenario 6: course structure -------------------------------------------
+// --- Scenario 6: trick recognition + landing --------------------------------
+{
+  const { physics, player, controller, input } = createRig();
+  for (let i = 0; i < 300; i++) {
+    controller.update(dt);
+    physics.step();
+    input.clearPressed();
+    if (i > 30 && player.grounded) break;
+  }
+
+  const landings: LandingResult[] = [];
+  const trickSystem = new TrickSystem(player, { onLanded: (r) => landings.push(r) });
+
+  let jumped = false;
+  for (let attempt = 0; attempt < 40 && !jumped; attempt++) {
+    const beforeY = player.body.translation().y;
+    input.set('jump', true);
+    controller.update(dt);
+    physics.step();
+    input.clearPressed();
+    input.set('jump', false);
+    if (player.body.translation().y > beforeY + 0.05) jumped = true;
+  }
+
+  input.set('brake', true); // hold S = backflip
+  for (let i = 0; i < 220 && landings.length === 0; i++) {
+    controller.update(dt);
+    physics.step();
+    input.clearPressed();
+    trickSystem.update();
+  }
+  input.set('brake', false);
+
+  const result = landings[0];
+  console.log('--- trick ---');
+  check(
+    'backflip recognised',
+    !!result && result.tricks.some((t) => t.name === 'Backflip'),
+    result ? result.tricks.map((t) => t.name).join(' + ') || 'no trick' : 'no landing',
+  );
+  check(
+    'landing evaluated',
+    !!result && result.quality === 'safe',
+    result ? `${result.quality} at ${result.landingAngle.toFixed(1)} deg` : 'no landing',
+  );
+}
+
+// --- Scenario 7: trick recognition table ------------------------------------
+{
+  const TAU = Math.PI * 2;
+  const cases: Array<[number, number, string]> = [
+    [-TAU, 0, 'Frontflip'],
+    [TAU, 0, 'Backflip'],
+    [-2 * TAU, 0, 'Double Frontflip'],
+    [2 * TAU, 0, 'Double Backflip'],
+    [0, TAU, '360'],
+    [0, 2 * TAU, '720'],
+    [0, 3 * TAU, '1080'],
+    [TAU, TAU, 'Backflip+360'],
+    [0, 0, ''],
+  ];
+  console.log('--- tricks ---');
+  for (const [pitch, yaw, expected] of cases) {
+    const names = recognizeTricks(pitch, yaw)
+      .map((t) => t.name)
+      .join('+');
+    check(`recognise ${expected || 'nothing'}`, names === expected, names || 'nothing');
+  }
+
+  const deg = (d: number) => (d * Math.PI) / 180;
+  check('safe landing', evaluateLanding(deg(10), 0).quality === 'safe', `${evaluateLanding(deg(10), 0).angle.toFixed(0)} deg`);
+  check('hard landing', evaluateLanding(deg(45), 0).quality === 'hard', `${evaluateLanding(deg(45), 0).angle.toFixed(0)} deg`);
+  check('crash landing', evaluateLanding(deg(80), 0).quality === 'crash', `${evaluateLanding(deg(80), 0).angle.toFixed(0)} deg`);
+}
+
+// --- Scenario 8: course structure -------------------------------------------
 {
   const physics = new PhysicsWorld(CONFIG.world.gravity);
   physics.setFixedStep(dt);
