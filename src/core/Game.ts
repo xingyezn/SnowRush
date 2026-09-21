@@ -36,7 +36,7 @@ export class Game {
   private readonly renderer: Renderer;
   private readonly lighting: Lighting;
   private readonly physics: PhysicsWorld;
-  private readonly terrain: Terrain;
+  readonly terrain: Terrain;
   readonly boundary: Boundary;
   readonly course: CourseGenerator;
   private readonly player: Player;
@@ -131,8 +131,21 @@ export class Game {
 
   dispose(): void {
     this.stop();
-    this.renderer.scene.remove(this.terrain.mesh);
     this.input.dispose();
+
+    // Release every GPU resource owned by the scene (meshes, instanced meshes,
+    // particle points and their materials).
+    this.renderer.scene.traverse((object) => {
+      const renderable = object as THREE.Mesh;
+      if (renderable.geometry) renderable.geometry.dispose();
+      const material = renderable.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(material)) {
+        for (const entry of material) entry.dispose();
+      } else if (material) {
+        material.dispose();
+      }
+    });
+
     this.renderer.dispose();
   }
 

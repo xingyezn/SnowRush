@@ -319,3 +319,49 @@ npm run build
 - `TASKS.md`：分阶段开发任务清单
 - `AGENTS.md`：供 Codex / DeepSeek Harness / Claude Code 等智能体执行的开发规则
 
+---
+
+## 10. 当前状态与部署
+
+### 已实现（V0.0 – V0.5）
+
+- 程序化雪山赛道：7 段（Intro / Trees / Slalom / Jump / High Speed / Big Jump / Finish）
+- Arcade 滑雪操控：弧线 Carving 转向、下坡加速、刹车、跳跃、空中特技
+- 世界物件：松树、岩石、旗门、跳台、检查点、终点（树 / 石 / 门 / 检查点使用 InstancedMesh）
+- 流程：Crash → 检查点 Respawn、计分、计时、倒计时、暂停、成绩单、再来一局
+- 特技：Frontflip / Backflip / Double / 360 / 720 / 1080 / 组合，落地质量判定，Combo 倍率
+- 视觉：低多边形远山、山谷边界护栏、地形坡度着色、雾、雪痕 / 雪雾 / 落地雪爆 / 环境飘雪、角色与雪板侧倾
+- 相机：阻尼跟随、速度联动 FOV / 距离、跳跃滞后、落地 / Crash 抖动、遮挡自动拉近
+- 音频：Web Audio 程序化合成（风、滑行、跳跃、落地、Crash、检查点、Combo），**无外部音频资源**
+- UI：开始菜单、暂停菜单、HUD、Trick 弹字、成绩单
+
+### 快速开始
+
+```bash
+npm install
+npm run dev      # http://localhost:5173/
+```
+
+### 构建与本地预览
+
+```bash
+npm run build
+npm run preview  # http://localhost:4173/
+```
+
+### 部署到 GitHub Pages
+
+1. 推送到 `main`（或 `master`）分支。
+2. 仓库 Settings → Pages → Build and deployment → Source 选择 **GitHub Actions**。
+3. `.github/workflows/deploy.yml` 会自动构建并发布。
+4. 访问 `https://<用户名>.github.io/<仓库名>/`。
+
+`vite.config.ts` 使用 `base: './'`，可直接部署到任意子路径，无需修改配置。
+
+### 验证
+
+```bash
+npm run build
+npm run test:physics   # 无头物理 / 特技 / 计分回归
+```
+

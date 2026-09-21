@@ -751,3 +751,45 @@ base: '/snow-rush/'
 
 如果无法明确回答，不应直接实现。
 
+---
+
+## 33. 实现补充（V0.1 – V0.5）
+
+### 33.1 新增模块
+
+```text
+src/core/Rng.ts                 确定性随机（赛道生成）
+src/effects/ParticlePool.ts     GPU 粒子池（THREE.Points + 程序化柔边着色器）
+src/effects/SnowEffects.ts      雪痕 / 雪雾 / 落地雪爆 / 环境飘雪
+src/systems/CollisionSystem.ts  Rapier 碰撞事件 → 玩法回调
+src/systems/CheckpointSystem.ts Respawn 点管理
+src/systems/ScoreSystem.ts      分数 / 门分 / Trick / Combo
+src/systems/Timer.ts            计时
+src/systems/TrickSystem.ts      特技识别与落地判定
+src/systems/AudioSystem.ts      Web Audio 程序化音效（无音频资源）
+src/world/Boundary.ts           可见护栏 + 不可见墙
+src/world/MountainBackdrop.ts   远景低多边形山
+src/world/CourseGenerator.ts    赛道分段与物件布点
+src/world/{Tree,Rock,Gate,JumpRamp,Checkpoint,Finish}.ts
+src/ui/{HUD,TrickHUD,StartMenu,PauseMenu,ResultScreen}.ts
+tools/physics-check.ts          无头回归测试（npm run test:physics）
+```
+
+### 33.2 关键约束：不要依赖 Rapier 射线做地面检测
+
+在浏览器中，`world.castRay*` **不会命中静态碰撞体**（heightfield、树、墙等），
+而同一份代码在 Node 无头环境却正常。因此：
+
+- 地面检测使用解析高度函数 `terrainHeight()` 与 `terrainNormalComponents()`
+- 相机遮挡使用赛道物件列表（树 / 石圆柱）做解析求交
+- 物理碰撞与求解仍由 Rapier 负责（这部分在浏览器正常）
+
+新增依赖射线查询的功能前，请先在浏览器中验证。
+
+### 33.3 布点与调参规则
+
+- 赛道由 `CourseGenerator` 用固定种子生成，可复现
+- 所有物件高度取自 `terrainHeight()`，与视觉 / 物理地形一致
+- 跳台仰角必须大于地形坡度（约 16.7°），否则只会让下坡变缓而不会起跳
+- 所有 gameplay 数值集中在 `src/core/Config.ts`
+

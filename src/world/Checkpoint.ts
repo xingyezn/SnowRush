@@ -13,30 +13,43 @@ export interface Checkpoint extends CheckpointPlacement {
   reached: boolean;
 }
 
+const UP = new THREE.Vector3(0, 1, 0);
+
 /**
- * Checkpoint arch: updates the respawn point and records progress.
- * Visual poles do not block movement; a wide sensor triggers on crossing.
+ * Checkpoint arch (instanced poles + bar) that updates the respawn point.
+ * A wide sensor triggers on crossing; the arch does not block movement.
  */
 export class CheckpointField {
   readonly checkpoints: Checkpoint[];
 
   constructor(physics: PhysicsWorld, scene: THREE.Scene, placements: CheckpointPlacement[]) {
     const c = CONFIG.course.checkpoints;
+    const count = placements.length;
+
     const poleGeo = new THREE.CylinderGeometry(0.25, 0.25, c.height, 6);
+    poleGeo.translate(0, c.height / 2, 0);
     const barGeo = new THREE.BoxGeometry(c.width, 0.7, 0.4);
-    const poleMat = new THREE.MeshStandardMaterial({
-      color: CONFIG.colors.checkpoint,
-      roughness: 0.7,
-      flatShading: true,
-    });
-    const barMat = new THREE.MeshStandardMaterial({
+
+    const material = new THREE.MeshStandardMaterial({
       color: CONFIG.colors.checkpoint,
       roughness: 0.7,
       flatShading: true,
     });
 
+    const poles = new THREE.InstancedMesh(poleGeo, material, count * 2);
+    const bars = new THREE.InstancedMesh(barGeo, material, count);
+    poles.castShadow = true;
+    bars.castShadow = true;
+    scene.add(poles);
+    scene.add(bars);
+
     const body = physics.world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
     this.checkpoints = placements.map((p) => ({ ...p, reached: false }));
+
+    const matrix = new THREE.Matrix4();
+    const quat = new THREE.Quaternion();
+    const position = new THREE.Vector3();
+    const one = new THREE.Vector3(1, 1, 1);
 
     placements.forEach((p, index) => {
       const half = c.width / 2;
@@ -44,18 +57,16 @@ export class CheckpointField {
       const groundRight = terrainHeight(p.x + half, p.z);
       const groundCenter = terrainHeight(p.x, p.z);
 
-      const group = new THREE.Group();
+      quat.setFromAxisAngle(UP, 0);
       for (const side of [-1, 1]) {
-        const pole = new THREE.Mesh(poleGeo, poleMat);
-        pole.position.set(p.x + side * half, (side < 0 ? groundLeft : groundRight) + c.height / 2, p.z);
-        pole.castShadow = true;
-        group.add(pole);
+        position.set(p.x + side * half, side < 0 ? groundLeft : groundRight, p.z);
+        matrix.compose(position, quat, one);
+        poles.setMatrixAt(index * 2 + (side < 0 ? 0 : 1), matrix);
       }
-      const bar = new THREE.Mesh(barGeo, barMat);
-      bar.position.set(p.x, Math.max(groundLeft, groundRight, groundCenter) + c.height - 0.5, p.z);
-      bar.castShadow = true;
-      group.add(bar);
-      scene.add(group);
+
+      position.set(p.x, Math.max(groundLeft, groundRight, groundCenter) + c.height - 0.5, p.z);
+      matrix.compose(position, quat, one);
+      bars.setMatrixAt(index, matrix);
 
       const sensor = RAPIER.ColliderDesc.cuboid(half, c.height / 2, c.sensorDepth / 2)
         .setTranslation(p.x, groundCenter + c.height / 2, p.z)
@@ -63,5 +74,10 @@ export class CheckpointField {
         .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
       physics.createCollider(sensor, body, { kind: 'checkpoint', index });
     });
+
+    poles.instanceMatrix.needsUpdate = true;
+    bars.instanceMatrix.needsUpdate = true;
+    poles.computeBoundingSphere();
+    bars.computeBoundingSphere();
   }
 }

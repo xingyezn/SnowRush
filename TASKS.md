@@ -440,12 +440,17 @@
 
 ## Performance
 
-- [ ] 使用 InstancedMesh 优化 Trees
-- [ ] 优化 Rocks
-- [ ] 控制 Particles 数量
-- [ ] 控制 Draw Calls
-- [ ] 优化 Shadow
-- [ ] 检查内存泄漏
+- [x] 使用 InstancedMesh 优化 Trees
+- [x] 优化 Rocks
+- [x] 控制 Particles 数量
+- [x] 控制 Draw Calls
+- [x] 优化 Shadow
+- [x] 检查内存泄漏
+
+> 实测（headless Chrome 1280×720）：**Draw Calls 37**、Triangles ≈166k、Geometries 22、Textures 3，
+> 远低于 Draw Calls < 300 的目标。Tree/Rock/Gate/Checkpoint/Boundary 均已 InstancedMesh；
+> 粒子为固定容量对象池（900/400/600）；阴影为单盏跟随平行光的紧凑视锥；
+> `Game.dispose()` 会遍历释放全部 geometry / material。
 
 ### Bundle Baseline（V0.1 记录，2026-09-22）
 
@@ -470,6 +475,9 @@
 - [ ] Firefox（本机未安装，未验证）
 - [ ] Safari（Windows 无法验证）
 
+> 说明：项目仅使用标准 WebGL2 / Web Audio / ES2022，未使用浏览器私有 API，
+> 但 Firefox 与 Safari 仍需在对应系统上人工复测。
+
 ---
 
 ## Responsive
@@ -477,28 +485,34 @@
 - [x] 1280×720
 - [x] 1920×1080
 - [x] 2560×1440
-- [ ] Mobile 页面不崩溃
+- [x] Mobile 页面不崩溃
+
+> Mobile 以 390×844 视口验证：正常渲染、HUD 自适应、0 exception（第一版不要求触屏操作）。
 
 ---
 
 ## Deployment
 
-- [ ] 配置 Vite base
-- [ ] 配置 GitHub Pages
-- [ ] `npm run build`
-- [ ] 验证 dist
+- [x] 配置 Vite base
+- [x] 配置 GitHub Pages
+- [x] `npm run build`
+- [x] 验证 dist
 - [ ] 发布线上 Demo
+
+> `vite.config.ts` 使用 `base: './'`，`dist/index.html` 全部为相对路径，可部署到任意子路径。
+> 已添加 `.github/workflows/deploy.yml`（push 到 main/master 自动构建并发布）与 `public/.nojekyll`。
+> 实际发布需要先推送到 GitHub 仓库并在 Settings → Pages 选择 GitHub Actions。
 
 ---
 
 ## Documentation
 
-- [ ] 更新 README
-- [ ] 更新 TASKS
-- [ ] 更新 ARCHITECTURE
-- [ ] 添加 Controls
-- [ ] 添加 Build
-- [ ] 添加 Deploy
+- [x] 更新 README
+- [x] 更新 TASKS
+- [x] 更新 ARCHITECTURE
+- [x] 添加 Controls
+- [x] 添加 Build
+- [x] 添加 Deploy
 
 ---
 

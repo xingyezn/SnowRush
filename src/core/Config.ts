@@ -32,7 +32,8 @@ export const CONFIG = {
     hemiIntensity: 0.72,
     sunIntensity: 2.1,
     shadowMapSize: 2048,
-    shadowRadius: 70,
+    // Tighter frustum => sharper shadows around the player for the same cost.
+    shadowRadius: 52,
     shadowFar: 600,
     shadowBias: -0.0008,
     sunOffsetX: 120,
