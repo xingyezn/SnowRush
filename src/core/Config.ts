@@ -228,6 +228,7 @@ export const CONFIG = {
 
   hud: {
     speedUnitFactor: 3.6,
+    hintDuration: 10,
   },
 
   audio: {

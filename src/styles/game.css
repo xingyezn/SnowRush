@@ -135,6 +135,21 @@ body {
   pointer-events: auto;
 }
 
+@keyframes panelIn {
+  0% {
+    transform: translateY(18px) scale(0.96);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+#result-screen.is-visible .result-panel {
+  animation: panelIn 0.3s ease-out;
+}
+
 .result-panel {
   width: 420px;
   max-width: 90vw;
@@ -232,4 +247,119 @@ body {
   color: #ffffff;
   opacity: 0.85;
   text-shadow: 0 2px 8px rgba(13, 43, 69, 0.5);
+}
+
+@keyframes trickPop {
+  0% {
+    transform: translateY(14px) scale(0.9);
+  }
+  45% {
+    transform: translateY(0) scale(1.06);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+#trick-hud.is-visible {
+  animation: trickPop 0.32s ease-out;
+}
+
+.hud-hint {
+  transition: opacity 0.8s ease-out;
+}
+
+.hud-hint.is-hidden {
+  opacity: 0;
+}
+
+#start-menu,
+#pause-menu {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 43, 69, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease-out;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+}
+
+#start-menu.is-visible,
+#pause-menu.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.menu-panel {
+  width: 380px;
+  max-width: 90vw;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 18px;
+  padding: 34px 36px;
+  text-align: center;
+  color: #0d2b45;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+}
+
+.menu-title {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: 6px;
+}
+
+.menu-subtitle {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  opacity: 0.6;
+  margin: 4px 0 22px;
+}
+
+.menu-button {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #2b6cb0;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.menu-button:hover {
+  background: #245a94;
+}
+
+.menu-button--ghost {
+  background: #e3ebf4;
+  color: #0d2b45;
+}
+
+.menu-button--ghost:hover {
+  background: #d3e0ee;
+}
+
+.menu-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 14px;
+  margin-top: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  opacity: 0.8;
+}
+
+.menu-controls span {
+  display: inline-block;
+  min-width: 76px;
+  font-weight: 800;
+  color: #2b6cb0;
 }

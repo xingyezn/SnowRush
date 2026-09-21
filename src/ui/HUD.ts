@@ -1,3 +1,4 @@
+import { CONFIG } from '../core/Config';
 import type { Player } from '../player/Player';
 
 /**
@@ -9,6 +10,8 @@ export class HUD {
   private readonly scoreValue: HTMLSpanElement;
   private readonly timeValue: HTMLSpanElement;
   private readonly message: HTMLDivElement;
+  private readonly hintEl: HTMLDivElement;
+  private hintTimer = 0;
 
   constructor(container: HTMLElement) {
     this.root = document.createElement('div');
@@ -35,6 +38,17 @@ export class HUD {
     this.scoreValue = this.root.querySelector('.hud-score-value') as HTMLSpanElement;
     this.timeValue = this.root.querySelector('.hud-time-value') as HTMLSpanElement;
     this.message = this.root.querySelector('.hud-message') as HTMLDivElement;
+    this.hintEl = this.root.querySelector('.hud-hint') as HTMLDivElement;
+  }
+
+  /** Shows the controls hint and fades it out after a few seconds. */
+  showHint(): void {
+    this.hintEl.classList.remove('is-hidden');
+    window.clearTimeout(this.hintTimer);
+    this.hintTimer = window.setTimeout(
+      () => this.hintEl.classList.add('is-hidden'),
+      CONFIG.hud.hintDuration * 1000,
+    );
   }
 
   update(player: Player): void {

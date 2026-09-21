@@ -18,6 +18,8 @@ import { SnowEffects } from '../effects/SnowEffects';
 import { FollowCamera } from '../camera/FollowCamera';
 import { HUD } from '../ui/HUD';
 import { TrickHUD } from '../ui/TrickHUD';
+import { StartMenu } from '../ui/StartMenu';
+import { PauseMenu } from '../ui/PauseMenu';
 import { ResultScreen } from '../ui/ResultScreen';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { CheckpointSystem } from '../systems/CheckpointSystem';
@@ -44,6 +46,8 @@ export class Game {
   private readonly followCamera: FollowCamera;
   private readonly hud: HUD;
   private readonly trickHud: TrickHUD;
+  private readonly startMenu: StartMenu;
+  private readonly pauseMenu: PauseMenu;
   private readonly resultScreen: ResultScreen;
   private readonly input: InputManager;
   private readonly loop: GameLoop;
@@ -86,6 +90,8 @@ export class Game {
     this.followCamera = new FollowCamera(this.renderer.camera, this.course.occluders);
     this.hud = new HUD(container);
     this.trickHud = new TrickHUD(container);
+    this.startMenu = new StartMenu(container);
+    this.pauseMenu = new PauseMenu(container);
     this.resultScreen = new ResultScreen(container);
 
     this.checkpointSystem = new CheckpointSystem(this.player, this.startSpawn);
@@ -107,7 +113,12 @@ export class Game {
   }
 
   init(): void {
-    this.beginRun();
+    this.state = GameState.Menu;
+    this.startMenu.show(() => {
+      this.audio.unlock();
+      this.startMenu.hide();
+      this.beginRun();
+    });
   }
 
   start(): void {
@@ -145,9 +156,12 @@ export class Game {
     this.checkpointSystem.reset(this.startSpawn);
     this.player.setSpawn(this.startSpawn);
     this.player.respawn();
+    this.startMenu.hide();
+    this.pauseMenu.hide();
     this.resultScreen.hide();
     this.trickHud.clear();
     this.hud.clearMessage();
+    this.hud.showHint();
     this.countdownRemaining = CONFIG.timer.countdownSeconds;
     this.state = GameState.Countdown;
   };
@@ -223,11 +237,14 @@ export class Game {
     if (this.state === GameState.Paused) {
       this.state = GameState.Playing;
       this.timer.start();
-      this.hud.clearMessage();
+      this.pauseMenu.hide();
     } else {
       this.state = GameState.Paused;
       this.timer.stop();
-      this.hud.setMessage('PAUSED');
+      this.pauseMenu.show(
+        () => this.togglePause(),
+        () => this.beginRun(),
+      );
     }
   }
 

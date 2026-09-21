@@ -404,25 +404,29 @@
 
 ## 5. UI
 
-- [ ] Start Menu
-- [ ] Countdown
-- [ ] Better HUD
-- [ ] Trick Animation
-- [ ] Pause Menu
-- [ ] Result Screen Polish
-- [ ] Control Hint Fade
+- [x] Start Menu
+- [x] Countdown
+- [x] Better HUD
+- [x] Trick Animation
+- [x] Pause Menu
+- [x] Result Screen Polish
+- [x] Control Hint Fade
 
 ---
 
 ## V0.4 验收
 
-- [ ] 高速感明显
-- [ ] 转弯有雪尘
-- [ ] 落地有反馈
-- [ ] Fog 和远山正常
-- [ ] UI 无明显遮挡
-- [ ] Audio 与速度联动
-- [ ] `npm run build` 成功
+- [x] 高速感明显
+- [x] 转弯有雪尘
+- [x] 落地有反馈
+- [x] Fog 和远山正常
+- [x] UI 无明显遮挡
+- [x] Audio 与速度联动
+- [x] `npm run build` 成功
+
+> 验证方式：`npm run test:physics`（物理/特技/计分全部通过）+ headless Chrome：
+> 开始菜单 → PLAY → 倒计时 → 滑行（雪尘/雪板侧倾/远山/雾）→ 跳跃空翻 → 落地雪爆与镜头抖动 →
+> P 暂停菜单 → RESUME，0 exception。
 
 ---
 
