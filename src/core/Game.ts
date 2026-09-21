@@ -14,8 +14,11 @@ import { PlayerController } from '../player/PlayerController';
 import { PlayerVisual } from '../player/PlayerVisual';
 import { FollowCamera } from '../camera/FollowCamera';
 import { HUD } from '../ui/HUD';
+import { ResultScreen } from '../ui/ResultScreen';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { CheckpointSystem } from '../systems/CheckpointSystem';
+import { ScoreSystem } from '../systems/ScoreSystem';
+import { Timer } from '../systems/Timer';
 
 /**
  * Orchestrator: creates systems, owns GameState and schedules updates.
@@ -32,15 +35,21 @@ export class Game {
   private readonly playerVisual: PlayerVisual;
   private readonly followCamera: FollowCamera;
   private readonly hud: HUD;
+  private readonly resultScreen: ResultScreen;
   private readonly input: InputManager;
   private readonly loop: GameLoop;
   private readonly collisionSystem: CollisionSystem;
   private readonly checkpointSystem: CheckpointSystem;
+  private readonly scoreSystem = new ScoreSystem();
+  private readonly timer = new Timer();
+  private readonly startSpawn: SpawnPoint;
 
   private readonly playerPosition = new THREE.Vector3();
   private state: GameState = GameState.Loading;
   private crashTimer = 0;
   private crashElapsed = 0;
+  private countdownRemaining = 0;
+  private maxSpeedKmh = 0;
 
   constructor(container: HTMLElement) {
     this.renderer = new Renderer(container);
@@ -53,6 +62,7 @@ export class Game {
     this.terrain = new Terrain(this.physics, this.renderer.scene);
     this.course = new CourseGenerator(this.physics, this.renderer.scene);
     this.player = new Player(this.physics, this.createSpawnPoint());
+    this.startSpawn = { ...this.player.spawn };
 
     this.playerVisual = new PlayerVisual();
     this.renderer.scene.add(this.playerVisual.group);
@@ -60,8 +70,9 @@ export class Game {
     this.playerController = new PlayerController(this.player, this.input, this.physics);
     this.followCamera = new FollowCamera(this.renderer.camera, this.physics);
     this.hud = new HUD(container);
+    this.resultScreen = new ResultScreen(container);
 
-    this.checkpointSystem = new CheckpointSystem(this.player, this.player.spawn);
+    this.checkpointSystem = new CheckpointSystem(this.player, this.startSpawn);
     this.collisionSystem = new CollisionSystem(this.physics, this.course, {
       onCrash: this.handleCrash,
       onGate: this.handleGate,
@@ -79,8 +90,7 @@ export class Game {
   }
 
   init(): void {
-    // V0.2 starts straight in Playing; MENU / COUNTDOWN arrive in later stages.
-    this.state = GameState.Playing;
+    this.beginRun();
   }
 
   start(): void {
@@ -107,6 +117,23 @@ export class Game {
     return { x, y, z, heading: 0 };
   }
 
+  /** Starts (or restarts) a run: reset stats, respawn, then count down. */
+  private readonly beginRun = (): void => {
+    this.course.reset();
+    this.scoreSystem.reset();
+    this.timer.reset();
+    this.maxSpeedKmh = 0;
+    this.crashTimer = 0;
+    this.crashElapsed = 0;
+    this.checkpointSystem.reset(this.startSpawn);
+    this.player.setSpawn(this.startSpawn);
+    this.player.respawn();
+    this.resultScreen.hide();
+    this.hud.clearMessage();
+    this.countdownRemaining = CONFIG.timer.countdownSeconds;
+    this.state = GameState.Countdown;
+  };
+
   private readonly handleCrash = (): void => {
     if (this.state !== GameState.Playing) return;
     this.state = GameState.Crashed;
@@ -117,7 +144,7 @@ export class Game {
   };
 
   private readonly handleGate = (): void => {
-    // Gate scoring is wired up together with the ScoreSystem.
+    this.scoreSystem.addGate();
   };
 
   private readonly handleCheckpoint = (index: number): void => {
@@ -126,7 +153,21 @@ export class Game {
   };
 
   private readonly handleFinish = (): void => {
-    // Finish handling is wired up together with the Timer / ResultScreen.
+    if (this.state !== GameState.Playing) return;
+    this.state = GameState.Finished;
+    this.timer.stop();
+    this.hud.clearMessage();
+    this.resultScreen.show(
+      {
+        time: this.timer.format(),
+        score: this.scoreSystem.getScore(),
+        maxSpeedKmh: this.maxSpeedKmh,
+        gates: this.scoreSystem.getGateCount(),
+        tricks: this.scoreSystem.getTrickCount(),
+        maxCombo: this.scoreSystem.getMaxCombo(),
+      },
+      this.beginRun,
+    );
   };
 
   private respawn(): void {
@@ -137,11 +178,24 @@ export class Game {
     this.hud.clearMessage();
   }
 
+  private togglePause(): void {
+    if (this.state === GameState.Paused) {
+      this.state = GameState.Playing;
+      this.timer.start();
+      this.hud.clearMessage();
+    } else {
+      this.state = GameState.Paused;
+      this.timer.stop();
+      this.hud.setMessage('PAUSED');
+    }
+  }
+
   private readonly fixedUpdate = (dt: number): void => {
     if (this.state === GameState.Playing) {
       this.playerController.update(dt);
       this.physics.step();
       this.collisionSystem.update();
+      this.timer.update(dt);
       return;
     }
 
@@ -150,17 +204,47 @@ export class Game {
       this.crashElapsed += dt;
       this.crashTimer -= dt;
       if (this.crashTimer <= 0) this.respawn();
+      return;
+    }
+
+    if (this.state === GameState.Countdown) {
+      this.physics.step();
+      this.countdownRemaining -= dt;
+      if (this.countdownRemaining <= -0.6) {
+        this.state = GameState.Playing;
+        this.timer.start();
+        this.hud.clearMessage();
+      }
     }
   };
 
   private readonly renderUpdate = (dt: number): void => {
     const position = this.player.getPosition(this.playerPosition);
 
-    if (this.input.wasPressed('reset') && this.state !== GameState.Finished) {
+    if (
+      this.input.wasPressed('pause') &&
+      (this.state === GameState.Playing || this.state === GameState.Paused)
+    ) {
+      this.togglePause();
+    }
+
+    if (
+      this.input.wasPressed('reset') &&
+      (this.state === GameState.Playing || this.state === GameState.Crashed)
+    ) {
       this.respawn();
     }
 
-    if (this.state === GameState.Playing) this.checkOutOfBounds(position);
+    if (this.state === GameState.Playing) {
+      this.checkOutOfBounds(position);
+      this.maxSpeedKmh = Math.max(this.maxSpeedKmh, this.player.getSpeedKmh());
+    }
+
+    if (this.state === GameState.Countdown) {
+      this.hud.setMessage(
+        this.countdownRemaining > 0 ? String(Math.ceil(this.countdownRemaining)) : 'GO!',
+      );
+    }
 
     const tilt =
       this.state === GameState.Crashed
@@ -171,6 +255,8 @@ export class Game {
     this.followCamera.update(position, this.player.heading, this.player.getSpeed(), dt, this.player.body);
     this.lighting.update(position);
     this.hud.update(this.player);
+    this.hud.setScore(this.scoreSystem.getScore());
+    this.hud.setTime(this.timer.format());
     this.renderer.render();
     this.input.update();
   };

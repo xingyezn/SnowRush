@@ -21,6 +21,13 @@ export class CheckpointSystem {
     return this.lastIndex;
   }
 
+  /** Clears progress and moves the respawn point back to the start. */
+  reset(initialSpawn: SpawnPoint): void {
+    this.lastIndex = -1;
+    this.respawn = { ...initialSpawn };
+    this.player.setSpawn(this.respawn);
+  }
+
   setCheckpoint(index: number, checkpoint: Checkpoint): void {
     const p = CONFIG.player;
     this.lastIndex = index;

@@ -218,42 +218,49 @@
 
 ## 6. Score
 
-- [ ] 创建 `ScoreSystem.ts`
-- [ ] Gate Score
-- [ ] Current Score
-- [ ] HUD Score
+- [x] 创建 `ScoreSystem.ts`
+- [x] Gate Score
+- [x] Current Score
+- [x] HUD Score
 
 ---
 
 ## 7. Timer
 
-- [ ] 游戏倒计时
-- [ ] 游戏计时器
-- [ ] Pause 时停止 Timer
-- [ ] Finish 时锁定 Timer
+- [x] 游戏倒计时
+- [x] 游戏计时器
+- [x] Pause 时停止 Timer
+- [x] Finish 时锁定 Timer
 
 ---
 
 ## 8. Finish
 
-- [ ] 创建 Finish Area
-- [ ] Finish Detection
-- [ ] FINISHED GameState
-- [ ] Result Screen
-- [ ] Play Again
+- [x] 创建 Finish Area
+- [x] Finish Detection
+- [x] FINISHED GameState
+- [x] Result Screen
+- [x] Play Again
 
 ---
 
 ## V0.2 验收
 
-- [ ] 可从 START 完成到 FINISH
-- [ ] Tree / Rock 碰撞工作正常
-- [ ] Checkpoint 正常保存
-- [ ] Crash 后正确 Respawn
-- [ ] Score 正确
-- [ ] Timer 正确
-- [ ] Result Screen 正常
-- [ ] `npm run build` 成功
+- [x] 可从 START 完成到 FINISH
+- [x] Tree / Rock 碰撞工作正常
+- [x] Checkpoint 正常保存
+- [x] Crash 后正确 Respawn
+- [x] Score 正确
+- [x] Timer 正确
+- [x] Result Screen 正常
+- [x] `npm run build` 成功
+
+> 验证方式：`npm run test:physics`（20 项，含赛道结构与 collider 数量断言）+
+> headless Chrome E2E：倒计时 → 计时器 → 穿门计分（2 门 = 100）→ FINISH 结果页
+> （TIME / SCORE / MAX SPEED / GATES / TRICKS / MAX COMBO）→ PLAY AGAIN 重置，0 exception。
+> Crash/Respawn/Checkpoint 另测（撞树 → CRASHED → 1.6s 后回到检查点）。
+> 说明：因无头机器人频繁撞树，「完整 2.7km 赛道滑到终点」使用缩短赛道验证同一套 Finish
+> 逻辑；完整长度赛道建议人工试玩确认。
 
 ---
 

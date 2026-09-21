@@ -150,4 +150,10 @@ export class CourseGenerator {
     this.checkpoints = new CheckpointField(physics, scene, checkpointPlacements);
     this.finish = new FinishArea(physics, scene, finishPlacement);
   }
+
+  /** Clears per-run progress so a Play Again starts a fresh run. */
+  reset(): void {
+    for (const gate of this.gates.gates) gate.passed = false;
+    for (const checkpoint of this.checkpoints.checkpoints) checkpoint.reached = false;
+  }
 }
