@@ -1,0 +1,18 @@
+node_modules
+dist
+dist-ssr
+tools/out
+*.local
+
+# Redundant archive; docs are tracked directly (README/PRODUCT_SPEC/ARCHITECTURE/TASKS/AGENTS)
+SnowRush_Project_Docs.zip
+
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

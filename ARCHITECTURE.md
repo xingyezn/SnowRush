@@ -1,0 +1,753 @@
+# SnowRush Architecture
+
+## 1. 架构目标
+
+SnowRush 的架构目标：
+
+- 模块化
+- 可测试
+- 可扩展
+- Physics 与 Render 解耦
+- Game Logic 与 UI 解耦
+- 所有参数集中管理
+- 每个阶段可独立保持可运行
+
+禁止：
+
+> 将主要逻辑全部堆积到 `main.ts` 或 `Game.ts`。
+
+---
+
+## 2. 总体架构
+
+```text
+Input
+  ↓
+PlayerController
+  ↓
+PhysicsWorld
+  ↓
+Player
+  ↓
+Game Systems
+  ├── TrickSystem
+  ├── CollisionSystem
+  ├── ScoreSystem
+  ├── CheckpointSystem
+  └── AudioSystem
+  ↓
+Render Layer
+  ├── PlayerVisual
+  ├── Terrain
+  ├── World Objects
+  ├── Effects
+  └── FollowCamera
+  ↓
+UI
+  ├── HUD
+  ├── TrickHUD
+  ├── StartMenu
+  └── ResultScreen
+```
+
+---
+
+## 3. 目录结构
+
+```text
+src/
+├── main.ts
+├── core/
+├── physics/
+├── player/
+├── camera/
+├── world/
+├── effects/
+├── systems/
+├── ui/
+└── styles/
+```
+
+---
+
+## 4. main.ts
+
+职责：
+
+- 初始化应用
+- 创建 Game
+- 启动游戏
+
+禁止：
+
+- 复杂 Player Logic
+- Terrain Logic
+- Score Logic
+- Trick Logic
+- UI Logic
+
+推荐：
+
+```ts
+import { Game } from './core/Game';
+
+const game = new Game();
+await game.init();
+game.start();
+```
+
+---
+
+## 5. Game.ts
+
+Game 是系统编排器，不是“万能类”。
+
+职责：
+
+- 创建 Scene
+- 创建 Renderer
+- 初始化 Systems
+- 初始化 World
+- 管理 GameState
+- 调度 update
+
+不负责：
+
+- 具体 Physics 算法
+- 具体 Trick 判断
+- 具体 Terrain 生成
+- 具体 HUD DOM
+
+---
+
+## 6. GameLoop.ts
+
+职责：
+
+- requestAnimationFrame
+- Delta Time
+- Fixed Time Step
+- FPS 相关控制
+
+推荐：
+
+```text
+Render Update
++
+Physics Fixed Update
+```
+
+Rapier 物理建议采用固定时间步长。
+
+例如：
+
+```text
+1 / 60 second
+```
+
+---
+
+## 7. GameState.ts
+
+负责：
+
+```text
+LOADING
+MENU
+COUNTDOWN
+PLAYING
+PAUSED
+CRASHED
+RESPAWN
+FINISHED
+```
+
+建议采用：
+
+```ts
+enum GameState
+```
+
+或明确的 State Machine。
+
+其他系统禁止自行创建重复状态。
+
+---
+
+## 8. Config.ts
+
+所有可调参数统一放这里。
+
+例如：
+
+```ts
+export const CONFIG = {
+  player: {
+    gravity: 22,
+    acceleration: 8,
+    maxSpeed: 36,
+    turnSpeed: 1.8,
+    brakeForce: 12,
+    jumpForce: 8
+  },
+  camera: {
+    baseFov: 60,
+    maxFov: 78,
+    minDistance: 7,
+    maxDistance: 12
+  }
+};
+```
+
+禁止：
+
+```ts
+speed += 7.364;
+camera.fov = 71.2;
+```
+
+这类无法解释的 Magic Number。
+
+---
+
+## 9. InputManager.ts
+
+InputManager 统一处理：
+
+- keydown
+- keyup
+- pressed
+- released
+- held
+
+建议提供：
+
+```ts
+isDown(action)
+wasPressed(action)
+wasReleased(action)
+```
+
+Game System 不直接监听 DOM Keyboard Event。
+
+---
+
+## 10. PhysicsWorld.ts
+
+职责：
+
+- Rapier 初始化
+- World 创建
+- Gravity
+- Fixed Step
+- Collider 管理
+- Raycast
+- Ground Detection
+
+禁止：
+
+- Three.js 视觉对象逻辑
+- UI
+- Score
+
+---
+
+## 11. Player.ts
+
+Player 表示“游戏中的玩家实体”。
+
+包含：
+
+```text
+RigidBody
+Collider
+Player State
+Velocity
+Grounded
+Speed
+Heading
+Respawn Position
+```
+
+职责：
+
+- Physics State
+- Position Synchronization
+- Player State
+
+---
+
+## 12. PlayerController.ts
+
+职责：
+
+```text
+Input
+ ↓
+Control Intent
+ ↓
+Movement Forces
+```
+
+处理：
+
+- Acceleration
+- Brake
+- Turn
+- Jump
+- Boost
+- Air Control
+
+禁止：
+
+```text
+直接修改 HTML
+直接修改 Score
+```
+
+---
+
+## 13. PlayerVisual.ts
+
+职责：
+
+- Character Geometry
+- Snowboard
+- Lean
+- Rotation
+- Visual Animation
+
+PlayerVisual 只读取 Player State。
+
+不要让 Visual 决定 Physics。
+
+---
+
+## 14. TrickSystem.ts
+
+职责：
+
+- 检测离地
+- 记录旋转
+- 识别 Trick
+- 记录 Pending Trick
+- Landing 后确认 Trick
+- Crash 时取消 Trick
+
+核心数据：
+
+```ts
+airRotationX
+airRotationY
+airRotationZ
+pendingTricks
+```
+
+---
+
+## 15. FollowCamera.ts
+
+输入：
+
+```text
+Player Position
+Player Heading
+Player Speed
+Player State
+```
+
+输出：
+
+```text
+Camera Position
+Camera LookAt
+Camera FOV
+Camera Shake
+```
+
+必须使用 Smooth Follow。
+
+禁止：
+
+```text
+camera.position.copy(player.position)
+```
+
+---
+
+## 16. Terrain.ts
+
+职责：
+
+- 生成 Snow Terrain Mesh
+- 生成对应 Physics Collider
+- Height Function
+- Terrain Sampling
+
+Render Terrain 和 Physics Terrain 必须来自同一高度数据。
+
+---
+
+## 17. CourseGenerator.ts
+
+负责：
+
+```text
+Course Sections
+ ↓
+Spawn Rules
+ ↓
+World Objects
+```
+
+不要把所有对象坐标硬编码在 `Game.ts`。
+
+推荐：
+
+```ts
+interface CourseSection {
+  startZ: number;
+  endZ: number;
+  type: CourseSectionType;
+  difficulty: number;
+}
+```
+
+---
+
+## 18. World Objects
+
+每类对象一个独立模块：
+
+```text
+Tree
+Rock
+Gate
+JumpRamp
+Checkpoint
+Mountain
+```
+
+对象应该至少区分：
+
+```text
+Visual Mesh
+Physics Collider
+Gameplay Metadata
+```
+
+---
+
+## 19. CollisionSystem.ts
+
+统一处理：
+
+- Player ↔ Tree
+- Player ↔ Rock
+- Player ↔ Gate
+- Player ↔ Ramp
+- Player ↔ Checkpoint
+
+不要让每个对象自行修改 Player State。
+
+---
+
+## 20. ScoreSystem.ts
+
+负责：
+
+- 当前分数
+- Trick Score
+- Gate Score
+- Combo
+- Max Combo
+- Stats
+
+推荐 API：
+
+```ts
+addTrick(...)
+addGate(...)
+resetCombo()
+getScore()
+```
+
+---
+
+## 21. CheckpointSystem.ts
+
+职责：
+
+- 当前 Checkpoint
+- Respawn Position
+- Respawn Heading
+- Course Progress
+
+Crash 后：
+
+```text
+Game
+ ↓
+CheckpointSystem
+ ↓
+Player Respawn
+```
+
+---
+
+## 22. AudioSystem.ts
+
+职责：
+
+- Wind
+- Snow Sliding
+- Jump
+- Landing
+- Crash
+- Checkpoint
+- Combo
+
+根据速度控制：
+
+```text
+Wind Volume
+Wind Pitch
+Sliding Volume
+```
+
+第一阶段可以暂时为空实现。
+
+---
+
+## 23. Effects
+
+### SnowParticles
+
+环境雪。
+
+### SnowTrail
+
+Snowboard 后方雪尘。
+
+### LandingEffect
+
+落地雪雾。
+
+Effects 不参与 Physics。
+
+---
+
+## 24. UI Architecture
+
+UI 使用：
+
+```text
+HTML + CSS
+```
+
+而不是 Canvas Text。
+
+UI 模块：
+
+```text
+HUD
+TrickHUD
+StartMenu
+ResultScreen
+```
+
+Game System 只提供数据。
+
+例如：
+
+```text
+ScoreSystem
+ ↓
+HUD.setScore()
+```
+
+---
+
+## 25. Update Order
+
+推荐每帧顺序：
+
+```ts
+input.update();
+
+playerController.update(dt);
+
+physics.fixedUpdate();
+
+player.update(dt);
+
+collisionSystem.update(dt);
+
+trickSystem.update(dt);
+
+scoreSystem.update(dt);
+
+checkpointSystem.update(dt);
+
+camera.update(dt);
+
+effects.update(dt);
+
+hud.update();
+```
+
+---
+
+## 26. Physics / Render Synchronization
+
+Rapier 为真实状态源：
+
+```text
+Rapier RigidBody
+ ↓
+Player State
+ ↓
+Three.js Object3D
+```
+
+禁止：
+
+```text
+Three.js position
+ ↓
+反向覆盖 Rapier
+```
+
+除非 Respawn / Reset。
+
+---
+
+## 27. Fixed Physics Step
+
+推荐：
+
+```text
+physicsStep = 1 / 60
+```
+
+使用 accumulator：
+
+```text
+frame dt
+ ↓
+accumulator
+ ↓
+fixed physics steps
+ ↓
+render interpolation
+```
+
+避免帧率变化影响物理。
+
+---
+
+## 28. Event System
+
+建议后续使用轻量事件系统：
+
+```text
+PLAYER_CRASH
+PLAYER_LANDED
+TRICK_COMPLETED
+CHECKPOINT_REACHED
+GAME_FINISHED
+```
+
+可以采用简单 EventEmitter。
+
+不需要引入大型状态管理库。
+
+---
+
+## 29. 性能策略
+
+### Trees
+
+使用：
+
+```text
+THREE.InstancedMesh
+```
+
+### Particles
+
+使用：
+
+```text
+THREE.Points
+```
+
+### Far Mountains
+
+- 无 Physics
+- 不投射阴影
+
+### Shadows
+
+只对：
+
+- Player
+- Tree
+- Rock
+
+启用。
+
+---
+
+## 30. 资源策略
+
+V0.1–V0.3：
+
+- 尽量无外部资源
+- Primitive Geometry 优先
+
+V0.4 以后：
+
+- 可加入 GLB
+- 可加入音频
+- 可加入程序纹理
+
+---
+
+## 31. GitHub Pages
+
+Vite 必须配置正确的：
+
+```ts
+base
+```
+
+如果仓库部署到：
+
+```text
+https://username.github.io/snow-rush/
+```
+
+则需要：
+
+```ts
+base: '/snow-rush/'
+```
+
+如果采用自定义域名，可调整。
+
+---
+
+## 32. 架构验收原则
+
+任何新功能加入前必须回答：
+
+1. 属于哪个模块？
+2. 是否破坏 Physics / Render 解耦？
+3. 是否引入重复状态？
+4. 是否把 Magic Number 写进 Config？
+5. 是否影响当前 Build？
+6. 是否需要新增测试或手动验证？
+
+如果无法明确回答，不应直接实现。
+

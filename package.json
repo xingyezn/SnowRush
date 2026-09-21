@@ -1,0 +1,22 @@
+{
+  "name": "snowrush",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Browser-based third-person low-poly snowboarding game",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test:physics": "vite build --config tools/physics-check.vite.config.ts && node tools/out/physics-check.js"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d": "^0.20.0",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}
