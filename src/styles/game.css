@@ -190,3 +190,46 @@ body {
 .result-button:hover {
   background: #245a94;
 }
+
+#trick-hud {
+  position: absolute;
+  top: 30%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.2s ease-out,
+    transform 0.2s ease-out;
+}
+
+#trick-hud.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.trick-name {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #ffffff;
+  text-shadow: 0 2px 12px rgba(13, 43, 69, 0.55);
+}
+
+.trick-score {
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffe27a;
+  text-shadow: 0 2px 8px rgba(13, 43, 69, 0.5);
+}
+
+.trick-combo {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #ffffff;
+  opacity: 0.85;
+  text-shadow: 0 2px 8px rgba(13, 43, 69, 0.5);
+}

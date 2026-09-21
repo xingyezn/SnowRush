@@ -1,13 +1,19 @@
 import { CONFIG } from '../core/Config';
 
+export interface TrickAward {
+  points: number;
+  multiplier: number;
+}
+
 /**
- * Run scoring. Gate score exists in V0.2; trick score / combo are filled in by
- * the V0.3 TrickSystem through the same API.
+ * Run scoring: gate score, trick score and the combo streak.
+ * Combo resets on a crash; every successful trick raises the multiplier.
  */
 export class ScoreSystem {
   private score = 0;
   private gates = 0;
   private tricks = 0;
+  private comboStreak = 0;
   private maxCombo = 1;
 
   addGate(): void {
@@ -15,10 +21,19 @@ export class ScoreSystem {
     this.score += CONFIG.score.gateScore;
   }
 
-  addTrick(points: number, combo: number): void {
+  addTrick(baseScore: number): TrickAward {
     this.tricks += 1;
+    this.comboStreak += 1;
+    const multipliers = CONFIG.trick.comboMultipliers;
+    const multiplier = multipliers[Math.min(this.comboStreak - 1, multipliers.length - 1)];
+    const points = Math.round(baseScore * multiplier);
     this.score += points;
-    if (combo > this.maxCombo) this.maxCombo = combo;
+    if (this.comboStreak > this.maxCombo) this.maxCombo = this.comboStreak;
+    return { points, multiplier };
+  }
+
+  resetCombo(): void {
+    this.comboStreak = 0;
   }
 
   getScore(): number {
@@ -33,6 +48,10 @@ export class ScoreSystem {
     return this.tricks;
   }
 
+  getComboStreak(): number {
+    return this.comboStreak;
+  }
+
   getMaxCombo(): number {
     return this.maxCombo;
   }
@@ -41,6 +60,7 @@ export class ScoreSystem {
     this.score = 0;
     this.gates = 0;
     this.tricks = 0;
+    this.comboStreak = 0;
     this.maxCombo = 1;
   }
 }

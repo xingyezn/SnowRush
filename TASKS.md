@@ -315,33 +315,37 @@
 
 ## 5. Trick Score
 
-- [ ] Base Trick Score
-- [ ] Difficulty
-- [ ] Combo
-- [ ] Max Combo
-- [ ] Crash Reset Combo
+- [x] Base Trick Score
+- [x] Difficulty（由各 Trick 的基础分值体现）
+- [x] Combo
+- [x] Max Combo
+- [x] Crash Reset Combo
 
 ---
 
 ## 6. Trick HUD
 
-- [ ] Trick Name
-- [ ] Score Popup
-- [ ] Combo Display
-- [ ] Fade Animation
+- [x] Trick Name
+- [x] Score Popup
+- [x] Combo Display
+- [x] Fade Animation
 
 ---
 
 ## V0.3 验收
 
-- [ ] 玩家可主动起跳
-- [ ] Backflip 可识别
-- [ ] 360 可识别
-- [ ] Double Trick 可识别
-- [ ] Safe Landing 正确加分
-- [ ] Crash 不加 Trick Score
-- [ ] Combo 正确
-- [ ] `npm run build` 成功
+- [x] 玩家可主动起跳
+- [x] Backflip 可识别
+- [x] 360 可识别
+- [x] Double Trick 可识别
+- [x] Safe Landing 正确加分
+- [x] Crash 不加 Trick Score
+- [x] Combo 正确
+- [x] `npm run build` 成功
+
+> 验证方式：`npm run test:physics`（含跳跃、跳台、Trick 名称表、落地质量表、计分/Combo 断言）+
+> headless Chrome：Space 起跳 → 后空翻 → 落地弹出「Backflip +500」并计入 HUD SCORE，0 exception。
+> Crash（撞树或落地角度过大）会取消本次 Trick 并清零 Combo。
 
 ---
 

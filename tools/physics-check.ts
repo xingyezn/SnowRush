@@ -15,6 +15,7 @@ import type { InputAction, InputState } from '../src/core/InputManager';
 import { PhysicsWorld } from '../src/physics/PhysicsWorld';
 import { Player } from '../src/player/Player';
 import { PlayerController } from '../src/player/PlayerController';
+import { ScoreSystem } from '../src/systems/ScoreSystem';
 import {
   evaluateLanding,
   recognizeTricks,
@@ -362,7 +363,23 @@ function check(label: string, condition: boolean, detail: string): void {
   check('crash landing', evaluateLanding(deg(80), 0).quality === 'crash', `${evaluateLanding(deg(80), 0).angle.toFixed(0)} deg`);
 }
 
-// --- Scenario 8: course structure -------------------------------------------
+// --- Scenario 8: trick scoring + combo --------------------------------------
+{
+  const score = new ScoreSystem();
+  const first = score.addTrick(500);
+  const second = score.addTrick(300);
+  const third = score.addTrick(500);
+  console.log('--- scoring ---');
+  check('first trick is x1', first.multiplier === 1 && first.points === 500, `${first.points} @ x${first.multiplier}`);
+  check('combo multiplier grows', second.multiplier === 1.2, `x${second.multiplier}`);
+  check('score accumulates', score.getScore() === 1610, `${score.getScore()}`);
+  check('max combo tracked', score.getMaxCombo() === 3, `x${score.getMaxCombo()}`);
+  score.resetCombo();
+  const afterCrash = score.addTrick(500);
+  check('crash resets combo', afterCrash.multiplier === 1, `x${afterCrash.multiplier}`);
+}
+
+// --- Scenario 9: course structure -------------------------------------------
 {
   const physics = new PhysicsWorld(CONFIG.world.gravity);
   physics.setFixedStep(dt);

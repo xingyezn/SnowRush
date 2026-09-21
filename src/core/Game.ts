@@ -15,6 +15,7 @@ import { PlayerController } from '../player/PlayerController';
 import { PlayerVisual } from '../player/PlayerVisual';
 import { FollowCamera } from '../camera/FollowCamera';
 import { HUD } from '../ui/HUD';
+import { TrickHUD } from '../ui/TrickHUD';
 import { ResultScreen } from '../ui/ResultScreen';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { CheckpointSystem } from '../systems/CheckpointSystem';
@@ -38,6 +39,7 @@ export class Game {
   private readonly playerVisual: PlayerVisual;
   private readonly followCamera: FollowCamera;
   private readonly hud: HUD;
+  private readonly trickHud: TrickHUD;
   private readonly resultScreen: ResultScreen;
   private readonly input: InputManager;
   private readonly loop: GameLoop;
@@ -75,6 +77,7 @@ export class Game {
     this.playerController = new PlayerController(this.player, this.input);
     this.followCamera = new FollowCamera(this.renderer.camera, this.course.occluders);
     this.hud = new HUD(container);
+    this.trickHud = new TrickHUD(container);
     this.resultScreen = new ResultScreen(container);
 
     this.checkpointSystem = new CheckpointSystem(this.player, this.startSpawn);
@@ -135,6 +138,7 @@ export class Game {
     this.player.setSpawn(this.startSpawn);
     this.player.respawn();
     this.resultScreen.hide();
+    this.trickHud.clear();
     this.hud.clearMessage();
     this.countdownRemaining = CONFIG.timer.countdownSeconds;
     this.state = GameState.Countdown;
@@ -146,6 +150,8 @@ export class Game {
     this.crashTimer = CONFIG.crash.respawnDelay;
     this.crashElapsed = 0;
     this.trickSystem.cancel();
+    this.scoreSystem.resetCombo();
+    this.trickHud.clear();
     this.player.crash();
     this.hud.setMessage('CRASHED');
   };
@@ -156,7 +162,14 @@ export class Game {
       this.handleCrash();
       return;
     }
-    // Trick scoring and the trick HUD are added in the next step.
+    if (result.tricks.length === 0) return;
+
+    const baseScore =
+      result.quality === 'hard'
+        ? Math.round(result.baseScore * CONFIG.trick.hardLandingScoreFactor)
+        : result.baseScore;
+    const award = this.scoreSystem.addTrick(baseScore);
+    this.trickHud.show(result.tricks, award.points, award.multiplier);
   };
 
   private readonly handleGate = (): void => {
