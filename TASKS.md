@@ -186,33 +186,33 @@
 
 ## 3. Collision
 
-- [ ] 创建 `CollisionSystem.ts`
-- [ ] Player ↔ Tree
-- [ ] Player ↔ Rock
-- [ ] Player ↔ Gate
-- [ ] Player ↔ JumpRamp
-- [ ] Player ↔ Checkpoint
+- [x] 创建 `CollisionSystem.ts`
+- [x] Player ↔ Tree
+- [x] Player ↔ Rock
+- [x] Player ↔ Gate
+- [x] Player ↔ JumpRamp（物理实体碰撞，由坡面自然起跳）
+- [x] Player ↔ Checkpoint
 
 ---
 
 ## 4. Crash
 
-- [ ] 创建 CRASHED 状态
-- [ ] Tree Crash
-- [ ] Rock Crash
-- [ ] 暂停玩家控制
-- [ ] 简单摔倒视觉
-- [ ] Respawn 延迟
+- [x] 创建 CRASHED 状态
+- [x] Tree Crash
+- [x] Rock Crash
+- [x] 暂停玩家控制
+- [x] 简单摔倒视觉
+- [x] Respawn 延迟
 
 ---
 
 ## 5. Checkpoint
 
-- [ ] 保存最近 Checkpoint
-- [ ] 保存 Respawn Position
-- [ ] 保存 Respawn Heading
-- [ ] R 手动 Respawn
-- [ ] Crash 自动 Respawn
+- [x] 保存最近 Checkpoint
+- [x] 保存 Respawn Position
+- [x] 保存 Respawn Heading
+- [x] R 手动 Respawn
+- [x] Crash 自动 Respawn
 
 ---
 

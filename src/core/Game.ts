@@ -14,6 +14,8 @@ import { PlayerController } from '../player/PlayerController';
 import { PlayerVisual } from '../player/PlayerVisual';
 import { FollowCamera } from '../camera/FollowCamera';
 import { HUD } from '../ui/HUD';
+import { CollisionSystem } from '../systems/CollisionSystem';
+import { CheckpointSystem } from '../systems/CheckpointSystem';
 
 /**
  * Orchestrator: creates systems, owns GameState and schedules updates.
@@ -32,9 +34,13 @@ export class Game {
   private readonly hud: HUD;
   private readonly input: InputManager;
   private readonly loop: GameLoop;
+  private readonly collisionSystem: CollisionSystem;
+  private readonly checkpointSystem: CheckpointSystem;
 
   private readonly playerPosition = new THREE.Vector3();
   private state: GameState = GameState.Loading;
+  private crashTimer = 0;
+  private crashElapsed = 0;
 
   constructor(container: HTMLElement) {
     this.renderer = new Renderer(container);
@@ -55,6 +61,14 @@ export class Game {
     this.followCamera = new FollowCamera(this.renderer.camera, this.physics);
     this.hud = new HUD(container);
 
+    this.checkpointSystem = new CheckpointSystem(this.player, this.player.spawn);
+    this.collisionSystem = new CollisionSystem(this.physics, this.course, {
+      onCrash: this.handleCrash,
+      onGate: this.handleGate,
+      onCheckpoint: this.handleCheckpoint,
+      onFinish: this.handleFinish,
+    });
+
     this.loop = new GameLoop(
       CONFIG.world.fixedStep,
       CONFIG.world.maxSubSteps,
@@ -65,7 +79,7 @@ export class Game {
   }
 
   init(): void {
-    // V0.1 starts straight in Playing; MENU / COUNTDOWN arrive in later stages.
+    // V0.2 starts straight in Playing; MENU / COUNTDOWN arrive in later stages.
     this.state = GameState.Playing;
   }
 
@@ -93,18 +107,67 @@ export class Game {
     return { x, y, z, heading: 0 };
   }
 
-  private readonly fixedUpdate = (dt: number): void => {
+  private readonly handleCrash = (): void => {
     if (this.state !== GameState.Playing) return;
-    this.playerController.update(dt);
-    this.physics.step();
+    this.state = GameState.Crashed;
+    this.crashTimer = CONFIG.crash.respawnDelay;
+    this.crashElapsed = 0;
+    this.player.crash();
+    this.hud.setMessage('CRASHED');
+  };
+
+  private readonly handleGate = (): void => {
+    // Gate scoring is wired up together with the ScoreSystem.
+  };
+
+  private readonly handleCheckpoint = (index: number): void => {
+    this.checkpointSystem.setCheckpoint(index, this.course.checkpoints.checkpoints[index]);
+    this.hud.setMessage('CHECKPOINT');
+  };
+
+  private readonly handleFinish = (): void => {
+    // Finish handling is wired up together with the Timer / ResultScreen.
+  };
+
+  private respawn(): void {
+    this.checkpointSystem.respawnPlayer();
+    this.state = GameState.Playing;
+    this.crashTimer = 0;
+    this.crashElapsed = 0;
+    this.hud.clearMessage();
+  }
+
+  private readonly fixedUpdate = (dt: number): void => {
+    if (this.state === GameState.Playing) {
+      this.playerController.update(dt);
+      this.physics.step();
+      this.collisionSystem.update();
+      return;
+    }
+
+    if (this.state === GameState.Crashed) {
+      this.physics.step();
+      this.crashElapsed += dt;
+      this.crashTimer -= dt;
+      if (this.crashTimer <= 0) this.respawn();
+    }
   };
 
   private readonly renderUpdate = (dt: number): void => {
     const position = this.player.getPosition(this.playerPosition);
 
+    if (this.input.wasPressed('reset') && this.state !== GameState.Finished) {
+      this.respawn();
+    }
+
     if (this.state === GameState.Playing) this.checkOutOfBounds(position);
 
-    this.playerVisual.sync(position, this.player.heading);
+    const tilt =
+      this.state === GameState.Crashed
+        ? Math.min(this.crashElapsed * CONFIG.crash.tiltSpeed, 1.5)
+        : 0;
+
+    this.playerVisual.sync(position, this.player.heading, tilt);
     this.followCamera.update(position, this.player.heading, this.player.getSpeed(), dt, this.player.body);
     this.lighting.update(position);
     this.hud.update(this.player);
@@ -112,11 +175,11 @@ export class Game {
     this.input.update();
   };
 
-  /** Safety net so a run cannot be lost by sliding off the world in V0.1. */
+  /** Safety net so a run cannot be lost by sliding off the world. */
   private checkOutOfBounds(position: THREE.Vector3): void {
     const ground = terrainHeight(position.x, position.z);
     if (position.y < ground - CONFIG.player.fallResetDepth) {
-      this.player.respawn();
+      this.respawn();
     }
   }
 }

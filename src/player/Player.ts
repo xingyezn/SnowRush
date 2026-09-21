@@ -25,15 +25,15 @@ export interface SpawnPoint {
 export class Player {
   readonly body: RAPIER.RigidBody;
   readonly collider: RAPIER.Collider;
-  readonly spawn: SpawnPoint;
   readonly groundNormal = new THREE.Vector3(0, 1, 0);
 
+  spawn: SpawnPoint;
   heading: number;
   grounded = false;
   state: PlayerState = PlayerState.Airborne;
 
   constructor(physics: PhysicsWorld, spawn: SpawnPoint) {
-    this.spawn = spawn;
+    this.spawn = { ...spawn };
     const p = CONFIG.player;
 
     const bodyDesc = RAPIER.RigidBodyDesc.dynamic()
@@ -75,6 +75,18 @@ export class Player {
 
   getSpeedKmh(): number {
     return this.getSpeed() * CONFIG.hud.speedUnitFactor;
+  }
+
+  setSpawn(spawn: SpawnPoint): void {
+    this.spawn = { ...spawn };
+  }
+
+  /** Enter the crash state: controls stop, the board scrubs most of its speed. */
+  crash(): void {
+    this.state = PlayerState.Crash;
+    this.grounded = false;
+    const v = this.body.linvel();
+    this.body.setLinvel({ x: v.x * 0.25, y: v.y, z: v.z * 0.25 }, true);
   }
 
   /** Respawn is the only place allowed to hard-set the physics transform. */
