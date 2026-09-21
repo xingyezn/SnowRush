@@ -2,12 +2,15 @@ import * as THREE from 'three';
 import { CONFIG } from '../core/Config';
 import { Rng } from '../core/Rng';
 import type { PhysicsWorld } from '../physics/PhysicsWorld';
+import { createBushField } from './Bush';
 import { CheckpointField, type CheckpointPlacement } from './Checkpoint';
 import { FinishArea } from './Finish';
 import { GateField, type GatePlacement } from './Gate';
 import { JumpRampField, type RampPlacement } from './JumpRamp';
-import { RockField, type RockPlacement } from './Rock';
-import { TreeField, type TreePlacement } from './Tree';
+import type { ModelLibrary } from './ModelLibrary';
+import { createRockField } from './Rock';
+import type { ScatterField } from './ScatterField';
+import { createTreeField } from './Tree';
 import { terrainHeight } from './TerrainHeight';
 
 /** Vertical cylinder used for analytic camera occlusion (trees / rocks). */
@@ -35,8 +38,9 @@ interface ZRange {
  * objects sit on the ground.
  */
 export class CourseGenerator {
-  readonly trees: TreeField;
-  readonly rocks: RockField;
+  readonly trees: ScatterField;
+  readonly rocks: ScatterField;
+  readonly bushes: ScatterField;
   readonly gates: GateField;
   readonly ramps: JumpRampField;
   readonly checkpoints: CheckpointField;
@@ -44,7 +48,7 @@ export class CourseGenerator {
   readonly occluders: Occluder[];
   readonly startZ: number;
 
-  constructor(physics: PhysicsWorld, scene: THREE.Scene) {
+  constructor(physics: PhysicsWorld, scene: THREE.Scene, models: ModelLibrary) {
     const c = CONFIG.course;
     const t = CONFIG.terrain;
     const rng = new Rng(c.seed);
@@ -109,7 +113,7 @@ export class CourseGenerator {
     const finishPlacement = { x: 0, z: finishZ };
     reserved.push(finishPlacement);
 
-    // --- Trees / rocks scattered across the tree + high speed sections ------
+    // --- Vegetation scattered across the tree + high speed sections ---------
     const scatterZones: ZRange[] = [treesSection, highSpeed];
     const scatter = (count: number, minSpacing: number, avoidScale: number): Point[] => {
       const out: Point[] = [];
@@ -142,37 +146,44 @@ export class CourseGenerator {
 
     const treePoints = scatter(c.trees.count, c.trees.minSpacing, 1.3);
     const rockPoints = scatter(c.rocks.count, c.rocks.minSpacing, 1.2);
+    const bushPoints = scatter(c.bushes.count, c.bushes.minSpacing, 0.8);
 
-    const treePlacements: TreePlacement[] = treePoints.map((p) => ({
+    const treePlacements = treePoints.map((p) => ({
       ...p,
       scale: rng.range(0.75, 1.3),
       rotation: rng.range(0, Math.PI * 2),
     }));
-    const rockPlacements: RockPlacement[] = rockPoints.map((p) => ({
+    const rockPlacements = rockPoints.map((p) => ({
       ...p,
       scale: rng.range(0.6, 1.4),
       rotation: rng.range(0, Math.PI * 2),
     }));
+    const bushPlacements = bushPoints.map((p) => ({
+      ...p,
+      scale: rng.range(0.6, 1.5),
+      rotation: rng.range(0, Math.PI * 2),
+    }));
 
     this.occluders = [
-      ...treePlacements.map((t) => ({
-        x: t.x,
-        z: t.z,
-        radius: c.trees.foliageRadius * t.scale * 0.85,
-        height: (c.trees.trunkHeight + c.trees.foliageHeight * 1.4) * t.scale,
-        groundY: terrainHeight(t.x, t.z),
+      ...treePlacements.map((tree) => ({
+        x: tree.x,
+        z: tree.z,
+        radius: c.trees.colliderRadius * 2.2 * tree.scale,
+        height: c.trees.visualHeight * tree.scale,
+        groundY: terrainHeight(tree.x, tree.z),
       })),
-      ...rockPlacements.map((r) => ({
-        x: r.x,
-        z: r.z,
-        radius: c.rocks.colliderRadius * r.scale,
-        height: c.rocks.colliderRadius * r.scale * 2,
-        groundY: terrainHeight(r.x, r.z),
+      ...rockPlacements.map((rock) => ({
+        x: rock.x,
+        z: rock.z,
+        radius: c.rocks.colliderRadius * rock.scale,
+        height: c.rocks.visualHeight * rock.scale,
+        groundY: terrainHeight(rock.x, rock.z),
       })),
     ];
 
-    this.trees = new TreeField(physics, scene, treePlacements);
-    this.rocks = new RockField(physics, scene, rockPlacements);
+    this.trees = createTreeField(physics, scene, treePlacements, models.trees);
+    this.rocks = createRockField(physics, scene, rockPlacements, models.rocks);
+    this.bushes = createBushField(physics, scene, bushPlacements, models.bushes);
     this.gates = new GateField(physics, scene, gatePlacements);
     this.ramps = new JumpRampField(physics, scene, rampPlacements);
     this.checkpoints = new CheckpointField(physics, scene, checkpointPlacements);

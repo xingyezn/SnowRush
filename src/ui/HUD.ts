@@ -11,6 +11,7 @@ export class HUD {
   private readonly timeValue: HTMLSpanElement;
   private readonly message: HTMLDivElement;
   private readonly hintEl: HTMLDivElement;
+  private readonly pauseButton: HTMLButtonElement;
   private hintTimer = 0;
 
   constructor(container: HTMLElement) {
@@ -18,6 +19,7 @@ export class HUD {
     this.root.id = 'hud';
     this.root.innerHTML = `
       <div class="hud-message"></div>
+      <button type="button" class="hud-pause" aria-label="暂停"><span></span><span></span></button>
       <div class="hud-score">
         <span class="hud-label">SCORE</span>
         <span class="hud-score-value">0</span>
@@ -39,6 +41,12 @@ export class HUD {
     this.timeValue = this.root.querySelector('.hud-time-value') as HTMLSpanElement;
     this.message = this.root.querySelector('.hud-message') as HTMLDivElement;
     this.hintEl = this.root.querySelector('.hud-hint') as HTMLDivElement;
+    this.pauseButton = this.root.querySelector('.hud-pause') as HTMLButtonElement;
+  }
+
+  /** Registers the on-screen pause button handler. */
+  onPause(callback: () => void): void {
+    this.pauseButton.addEventListener('click', callback);
   }
 
   /** Shows the controls hint and fades it out after a few seconds. */

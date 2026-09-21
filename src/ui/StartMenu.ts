@@ -1,6 +1,7 @@
 /** Title / start overlay. The PLAY click also unlocks the audio context. */
 export class StartMenu {
   private readonly root: HTMLDivElement;
+  private readonly bestEl: HTMLParagraphElement;
   private onStart: (() => void) | null = null;
 
   constructor(container: HTMLElement) {
@@ -10,6 +11,7 @@ export class StartMenu {
       <div class="menu-panel">
         <h1 class="menu-title">SNOWRUSH</h1>
         <p class="menu-subtitle">LOW-POLY SNOWBOARDING</p>
+        <p class="menu-best"></p>
         <button type="button" class="menu-button" data-action="play">PLAY</button>
         <div class="menu-controls">
           <div><span>W / ↑</span>加速</div>
@@ -25,12 +27,14 @@ export class StartMenu {
     `;
     container.appendChild(this.root);
 
+    this.bestEl = this.root.querySelector('.menu-best') as HTMLParagraphElement;
     const button = this.root.querySelector('[data-action="play"]') as HTMLButtonElement;
     button.addEventListener('click', () => this.onStart?.());
   }
 
-  show(onStart: () => void): void {
+  show(bestScore: number, onStart: () => void): void {
     this.onStart = onStart;
+    this.bestEl.textContent = bestScore > 0 ? `BEST ${bestScore.toLocaleString('en-US')}` : '';
     this.root.classList.add('is-visible');
   }
 

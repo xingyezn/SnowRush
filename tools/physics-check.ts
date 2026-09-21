@@ -24,6 +24,7 @@ import {
 } from '../src/systems/TrickSystem';
 import { buildHeightFieldData } from '../src/world/HeightFieldData';
 import { CourseGenerator } from '../src/world/CourseGenerator';
+import { createFallbackLibrary } from '../src/world/ModelLibrary';
 import { JumpRampField } from '../src/world/JumpRamp';
 import { terrainHeight } from '../src/world/TerrainHeight';
 
@@ -384,7 +385,7 @@ function check(label: string, condition: boolean, detail: string): void {
   const physics = new PhysicsWorld(CONFIG.world.gravity);
   physics.setFixedStep(dt);
   const scene = new THREE.Scene();
-  const course = new CourseGenerator(physics, scene);
+  const course = new CourseGenerator(physics, scene, createFallbackLibrary());
 
   const t = CONFIG.terrain;
   const halfWidth = t.playWidth / 2;

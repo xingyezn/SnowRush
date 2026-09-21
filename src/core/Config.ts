@@ -85,18 +85,21 @@ export const CONFIG = {
     trees: {
       count: 150,
       minSpacing: 10,
-      trunkRadius: 0.42,
-      trunkHeight: 3,
-      foliageRadius: 1.9,
-      foliageHeight: 4.4,
+      /** Target world height for the loaded tree models. */
+      visualHeight: 9,
       colliderRadius: 0.75,
       colliderHeight: 5.5,
     },
     rocks: {
       count: 45,
       minSpacing: 13,
-      radius: 1.3,
+      visualHeight: 2.4,
       colliderRadius: 1.1,
+    },
+    bushes: {
+      count: 120,
+      minSpacing: 7,
+      visualHeight: 1.5,
     },
     gates: {
       spacing: 60,
@@ -261,6 +264,7 @@ export const CONFIG = {
     helmet: 0x1f2933,
     treeTrunk: 0x6b4a2f,
     treeFoliage: 0x2f5d3a,
+    snowCap: 0xf7fbff,
     rock: 0x7b8794,
     gate: 0xd93b3b,
     gatePole: 0xf2f2f2,

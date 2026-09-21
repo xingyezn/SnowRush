@@ -23,6 +23,20 @@ body {
   height: 100%;
 }
 
+#loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #a8d5f2;
+  color: #0d2b45;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 4px;
+}
+
 #hud {
   position: absolute;
   inset: 0;
@@ -83,6 +97,36 @@ body {
 
 .hud-message.is-visible {
   opacity: 1;
+}
+
+.hud-pause {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 46px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(13, 43, 69, 0.18);
+}
+
+.hud-pause:hover {
+  background: #ffffff;
+}
+
+.hud-pause span {
+  width: 5px;
+  height: 16px;
+  border-radius: 2px;
+  background: #0d2b45;
 }
 
 .hud-label {
@@ -315,7 +359,16 @@ body {
   font-weight: 700;
   letter-spacing: 3px;
   opacity: 0.6;
-  margin: 4px 0 22px;
+  margin: 4px 0 10px;
+}
+
+.menu-best {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #2b6cb0;
+  min-height: 18px;
+  margin-bottom: 16px;
 }
 
 .menu-button {

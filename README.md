@@ -1,5 +1,12 @@
 # SnowRush
 
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-r186-000000?logo=three.js&logoColor=white)
+![Rapier](https://img.shields.io/badge/Rapier-0.20-FF6F00)
+![License](https://img.shields.io/badge/license-MIT-green)
+[![Demo](https://img.shields.io/badge/demo-GitHub%20Pages-brightgreen)](https://xingyezn.github.io/SnowRush/)
+
 SnowRush 是一个基于浏览器运行的第三人称 3D 单板滑雪小游戏。
 
 项目采用：
@@ -11,6 +18,16 @@ SnowRush 是一个基于浏览器运行的第三人称 3D 单板滑雪小游戏�
 
 游戏定位为 **Low-poly + Arcade Snowboarding Game**。  
 玩家从雪山顶部向下滑行，通过转向、加速、刹车、跳跃和空中特技获得分数，并最终完成整条赛道。
+
+### ▶ 在线试玩
+
+**https://xingyezn.github.io/SnowRush/**
+
+### 截图
+
+| 开始菜单 | 滑行 | 空中特技 |
+|---|---|---|
+| ![Start menu](docs/screenshots/start-menu.png) | ![Gameplay](docs/screenshots/gameplay.png) | ![Trick](docs/screenshots/trick.png) |
 
 ---
 

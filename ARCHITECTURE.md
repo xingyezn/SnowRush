@@ -769,8 +769,10 @@ src/systems/TrickSystem.ts      特技识别与落地判定
 src/systems/AudioSystem.ts      Web Audio 程序化音效（无音频资源）
 src/world/Boundary.ts           可见护栏 + 不可见墙
 src/world/MountainBackdrop.ts   远景低多边形山
+src/world/ModelLibrary.ts       加载 CC0 FBX 模型（归一化 + 合并）
+src/world/ScatterField.ts       通用模型散布（InstancedMesh + 可选碰撞体）
 src/world/CourseGenerator.ts    赛道分段与物件布点
-src/world/{Tree,Rock,Gate,JumpRamp,Checkpoint,Finish}.ts
+src/world/{Tree,Rock,Bush,Gate,JumpRamp,Checkpoint,Finish}.ts
 src/ui/{HUD,TrickHUD,StartMenu,PauseMenu,ResultScreen}.ts
 tools/physics-check.ts          无头回归测试（npm run test:physics）
 ```
@@ -792,4 +794,12 @@ tools/physics-check.ts          无头回归测试（npm run test:physics）
 - 所有物件高度取自 `terrainHeight()`，与视觉 / 物理地形一致
 - 跳台仰角必须大于地形坡度（约 16.7°），否则只会让下坡变缓而不会起跳
 - 所有 gameplay 数值集中在 `src/core/Config.ts`
+
+### 33.4 外部资源
+
+- `public/models/` 存放 **CC0 1.0** 的 Quaternius 低多边形自然模型（树 / 岩石 / 灌木），
+  见 `public/models/LICENSE.txt`
+- 模型在 `main.ts` 中先加载完成再构建 `Game`，保证 `CourseGenerator` 可同步实例化
+- 加载失败时 `ModelLibrary` 会退回程序化几何体，游戏仍可运行
+- 模型统一归一化：底部对齐 y=0、XZ 居中、按 `visualHeight` 缩放到目标高度
 

@@ -10,6 +10,7 @@ import { Terrain } from '../world/Terrain';
 import { Boundary } from '../world/Boundary';
 import { MountainBackdrop } from '../world/MountainBackdrop';
 import { CourseGenerator } from '../world/CourseGenerator';
+import type { ModelLibrary } from '../world/ModelLibrary';
 import { terrainHeight } from '../world/TerrainHeight';
 import { Player, type SpawnPoint } from '../player/Player';
 import { PlayerController } from '../player/PlayerController';
@@ -33,6 +34,8 @@ import { TrickSystem, type LandingResult } from '../systems/TrickSystem';
  * Contains no terrain / player / camera algorithms itself.
  */
 export class Game {
+  private static readonly BEST_SCORE_KEY = 'SnowRush.best';
+
   private readonly renderer: Renderer;
   private readonly lighting: Lighting;
   private readonly physics: PhysicsWorld;
@@ -67,7 +70,7 @@ export class Game {
   private maxSpeedKmh = 0;
   private wasGrounded = true;
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, models: ModelLibrary) {
     this.renderer = new Renderer(container);
     this.lighting = new Lighting(this.renderer.scene);
     this.input = new InputManager();
@@ -78,7 +81,7 @@ export class Game {
     this.terrain = new Terrain(this.physics, this.renderer.scene);
     this.boundary = new Boundary(this.physics, this.renderer.scene);
     new MountainBackdrop(this.renderer.scene);
-    this.course = new CourseGenerator(this.physics, this.renderer.scene);
+    this.course = new CourseGenerator(this.physics, this.renderer.scene, models);
     this.player = new Player(this.physics, this.createSpawnPoint());
     this.startSpawn = { ...this.player.spawn };
 
@@ -89,6 +92,7 @@ export class Game {
     this.playerController = new PlayerController(this.player, this.input);
     this.followCamera = new FollowCamera(this.renderer.camera, this.course.occluders);
     this.hud = new HUD(container);
+    this.hud.onPause(() => this.togglePause());
     this.trickHud = new TrickHUD(container);
     this.startMenu = new StartMenu(container);
     this.pauseMenu = new PauseMenu(container);
@@ -114,11 +118,29 @@ export class Game {
 
   init(): void {
     this.state = GameState.Menu;
-    this.startMenu.show(() => {
+    this.startMenu.show(this.loadBestScore(), () => {
       this.audio.unlock();
       this.startMenu.hide();
       this.beginRun();
     });
+  }
+
+  private loadBestScore(): number {
+    try {
+      return Number(window.localStorage.getItem(Game.BEST_SCORE_KEY) ?? 0) || 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  private saveBestScore(score: number): void {
+    try {
+      if (score > this.loadBestScore()) {
+        window.localStorage.setItem(Game.BEST_SCORE_KEY, String(score));
+      }
+    } catch {
+      // localStorage can be unavailable (private mode); ignore.
+    }
   }
 
   start(): void {
@@ -225,6 +247,7 @@ export class Game {
     this.state = GameState.Finished;
     this.timer.stop();
     this.hud.clearMessage();
+    this.saveBestScore(this.scoreSystem.getScore());
     this.resultScreen.show(
       {
         time: this.timer.format(),
@@ -247,6 +270,7 @@ export class Game {
   }
 
   private togglePause(): void {
+    if (this.state !== GameState.Playing && this.state !== GameState.Paused) return;
     if (this.state === GameState.Paused) {
       this.state = GameState.Playing;
       this.timer.start();
