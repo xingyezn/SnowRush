@@ -31,10 +31,16 @@ export const CONFIG = {
   },
 
   terrain: {
-    width: 140,
+    /** Visual + physics terrain extent (wider than the playable corridor). */
+    width: 260,
     length: 3000,
-    segmentsX: 70,
+    segmentsX: 130,
     segmentsZ: 480,
+    /** Playable corridor width; the fence and walls sit at playWidth / 2. */
+    playWidth: 140,
+    /** Terrain rises into valley walls beyond this far from the corridor. */
+    edgeStartOffset: 15,
+    edgeRiseFactor: 0.04,
     /** dy/dz of the base slope. Larger = steeper descent toward -Z. */
     baseSlope: 0.3,
     largeWaveAmp: 5,
@@ -91,9 +97,15 @@ export const CONFIG = {
       sensorDepth: 4,
     },
     ramps: {
-      width: 14,
-      length: 16,
-      height: 3.4,
+      width: 16,
+      length: 18,
+      height: 3.8,
+    },
+    boundary: {
+      postSpacing: 12,
+      postRadius: 0.14,
+      postHeight: 1.4,
+      railThickness: 0.34,
     },
     checkpoints: {
       count: 4,
@@ -158,20 +170,20 @@ export const CONFIG = {
   camera: {
     baseFov: 60,
     maxFov: 78,
-    minDistance: 7,
-    maxDistance: 12,
-    baseHeight: 3,
-    maxHeight: 5,
+    minDistance: 5,
+    maxDistance: 8,
+    baseHeight: 2.2,
+    maxHeight: 3.4,
     positionLerp: 4,
     lookLerp: 8,
     fovLerp: 4,
     speedForMax: 36,
-    lookAhead: 4,
-    lookHeight: 1.2,
-    minGroundClearance: 1.5,
+    lookAhead: 3.5,
+    lookHeight: 1,
+    minGroundClearance: 1.2,
     /** Camera occlusion handling: pull in ahead of blockers. */
     occlusionPadding: 0.4,
-    minOccludedDistance: 1.8,
+    minOccludedDistance: 1.4,
   },
 
   hud: {
@@ -194,7 +206,10 @@ export const CONFIG = {
     gate: 0xd93b3b,
     gatePole: 0xf2f2f2,
     checkpoint: 0x2fa8d9,
-    ramp: 0xe8edf3,
+    ramp: 0xe8742a,
+    rampSide: 0xb8551a,
     finish: 0xf2c14e,
+    boundaryPost: 0x6b4a2f,
+    boundaryRail: 0xd93b3b,
   },
 };

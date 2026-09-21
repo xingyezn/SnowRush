@@ -209,7 +209,7 @@ function check(label: string, condition: boolean, detail: string): void {
   const course = new CourseGenerator(physics, scene);
 
   const t = CONFIG.terrain;
-  const halfWidth = t.width / 2;
+  const halfWidth = t.playWidth / 2;
   const all = [
     ...course.trees.placements,
     ...course.rocks.placements,

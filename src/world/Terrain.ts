@@ -47,34 +47,5 @@ export class Terrain {
       .setFriction(t.friction)
       .setRestitution(0);
     physics.createCollider(collider, this.body);
-
-    this.createBoundaryWalls(physics);
-  }
-
-  /** Invisible walls that keep the player inside the course width. */
-  private createBoundaryWalls(physics: PhysicsWorld): void {
-    const t = CONFIG.terrain;
-    const halfWidth = t.width / 2;
-    const halfLength = t.length / 2;
-
-    for (const side of [-1, 1]) {
-      const body = physics.world.createRigidBody(
-        RAPIER.RigidBodyDesc.fixed().setTranslation(side * (halfWidth + t.wallThickness), 0, 0),
-      );
-      const wall = RAPIER.ColliderDesc.cuboid(t.wallThickness, t.wallHalfHeight, halfLength).setFriction(
-        0.2,
-      );
-      physics.createCollider(wall, body);
-    }
-
-    const backBody = physics.world.createRigidBody(
-      RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0, halfLength + t.wallThickness),
-    );
-    const backWall = RAPIER.ColliderDesc.cuboid(
-      halfWidth,
-      t.wallHalfHeight,
-      t.wallThickness,
-    ).setFriction(0.2);
-    physics.createCollider(backWall, backBody);
   }
 }

@@ -7,6 +7,7 @@ import { Renderer } from './Renderer';
 import { PhysicsWorld } from '../physics/PhysicsWorld';
 import { Lighting } from '../world/Lighting';
 import { Terrain } from '../world/Terrain';
+import { Boundary } from '../world/Boundary';
 import { CourseGenerator } from '../world/CourseGenerator';
 import { terrainHeight } from '../world/TerrainHeight';
 import { Player, type SpawnPoint } from '../player/Player';
@@ -29,6 +30,7 @@ export class Game {
   private readonly lighting: Lighting;
   private readonly physics: PhysicsWorld;
   private readonly terrain: Terrain;
+  readonly boundary: Boundary;
   readonly course: CourseGenerator;
   private readonly player: Player;
   private readonly playerController: PlayerController;
@@ -60,6 +62,7 @@ export class Game {
     this.physics.setFixedStep(CONFIG.world.fixedStep);
 
     this.terrain = new Terrain(this.physics, this.renderer.scene);
+    this.boundary = new Boundary(this.physics, this.renderer.scene);
     this.course = new CourseGenerator(this.physics, this.renderer.scene);
     this.player = new Player(this.physics, this.createSpawnPoint());
     this.startSpawn = { ...this.player.spawn };

@@ -18,7 +18,12 @@ export function terrainHeight(x: number, z: number): number {
   const smallNoise =
     t.smallNoiseAmp * Math.sin(x * t.smallNoiseFreqX) * Math.cos(z * t.smallNoiseFreqZ);
 
-  return base + largeWave + crossWave + smallNoise;
+  // Valley walls outside the playable corridor so the terrain edge is never a
+  // visible void. Only depends on x, so the downhill slope is unaffected.
+  const edge = Math.max(0, Math.abs(x) - (t.playWidth / 2 + t.edgeStartOffset));
+  const edgeRise = edge * edge * t.edgeRiseFactor;
+
+  return base + largeWave + crossWave + smallNoise + edgeRise;
 }
 
 export interface NormalComponents {

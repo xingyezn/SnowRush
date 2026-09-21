@@ -38,7 +38,7 @@ export class CourseGenerator {
     const t = CONFIG.terrain;
     const rng = new Rng(c.seed);
 
-    const halfWidth = t.width / 2;
+    const halfWidth = t.playWidth / 2;
     const minX = -halfWidth + c.edgeMargin;
     const maxX = halfWidth - c.edgeMargin;
     this.startZ = t.length / 2 - t.startOffsetZ;
