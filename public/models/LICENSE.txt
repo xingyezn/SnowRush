@@ -1,17 +1,26 @@
 Third-party 3D models used by SnowRush
 ======================================
 
-Nature models (trees, rocks, bushes)
-------------------------------------
-Source : "LowPoly Models by @Quaternius" - Nature Pack Essentials vol.3
-Author : Quaternius (https://quaternius.com)
+Source : "LowPoly Models by @Quaternius" (https://quaternius.com)
 License: CC0 1.0 Universal (Public Domain Dedication)
          https://creativecommons.org/publicdomain/zero/1.0/
 
-Files:
-  tree1.fbx tree2.fbx tree3.fbx tree4.fbx
+CC0 places the work in the public domain: attribution is not required, but is
+given here as a courtesy.
+
+Nature - "Nature Pack Essentials vol.3"
+---------------------------------------
   rock1.fbx rock2.fbx rock3.fbx
   bush1.fbx bush2.fbx bush3.fbx
 
-CC0 places the work in the public domain: attribution is not required, but is
-given here as a courtesy.
+Nature - "Christmas Pack"
+-------------------------
+  pine1.fbx         (PineTree)
+  pine2.fbx         (PineTreeTall)
+  pine_snow1.fbx    (PineTree_Snow)
+  pine_snow2.fbx    (PineTreeTall_Snow)
+
+Characters - "Animated Men Characters"
+--------------------------------------
+  rider.fbx         (Male_LongSleeve)
+  Animations used: Man_Idle, Man_Jump, Man_Death

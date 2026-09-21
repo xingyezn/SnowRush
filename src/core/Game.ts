@@ -14,7 +14,7 @@ import type { ModelLibrary } from '../world/ModelLibrary';
 import { terrainHeight } from '../world/TerrainHeight';
 import { Player, type SpawnPoint } from '../player/Player';
 import { PlayerController } from '../player/PlayerController';
-import { PlayerVisual } from '../player/PlayerVisual';
+import { PlayerVisual, type RiderAnimation } from '../player/PlayerVisual';
 import { SnowEffects } from '../effects/SnowEffects';
 import { FollowCamera } from '../camera/FollowCamera';
 import { HUD } from '../ui/HUD';
@@ -85,7 +85,7 @@ export class Game {
     this.player = new Player(this.physics, this.createSpawnPoint());
     this.startSpawn = { ...this.player.spawn };
 
-    this.playerVisual = new PlayerVisual();
+    this.playerVisual = new PlayerVisual(models.rider);
     this.renderer.scene.add(this.playerVisual.group);
     this.snowEffects = new SnowEffects(this.renderer.scene);
 
@@ -347,6 +347,10 @@ export class Game {
         ? Math.min(this.crashElapsed * CONFIG.crash.tiltSpeed, 1.5)
         : 0;
 
+    const animation: RiderAnimation =
+      this.state === GameState.Crashed ? 'death' : this.player.grounded ? 'idle' : 'jump';
+    this.playerVisual.setAnimation(animation);
+    this.playerVisual.update(dt);
     this.playerVisual.sync(
       position,
       this.player.heading,

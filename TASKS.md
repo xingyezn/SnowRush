@@ -515,8 +515,9 @@
 - [x] 添加 Deploy
 
 > V0.5 追加（模型与 UI 增强）：
-> - 接入 **CC0 Quaternius** 自然模型（松树 ×4 / 岩石 ×3 / 灌木 ×3，见 `public/models/LICENSE.txt`），
->   通过 `ModelLibrary` 加载、`ScatterField` 实例化，保留全部碰撞体
+> - 接入 **CC0 Quaternius** 模型（见 `public/models/LICENSE.txt`）：
+>   雪松 ×4（含积雪版）/ 岩石 ×3 / 灌木 ×3，`ModelLibrary` 加载 + `ScatterField` 实例化，保留全部碰撞体
+> - 角色换成**带动画的人物模型**（`rider.fbx`，使用 `Man_Idle` / `Man_Jump` / `Man_Death` 三段动画 + 交叉淡入）
 > - 新增**屏幕上方暂停按钮**（点击弹出暂停菜单）
 > - 开始菜单显示 **BEST 分数**（localStorage 持久化）
 > - README 增加徽章与截图

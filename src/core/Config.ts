@@ -199,6 +199,9 @@ export const CONFIG = {
     /** Visual board lean into turns (radians) and how fast it settles. */
     maxLean: 0.35,
     leanRate: 8,
+    /** Animated rider model: target height and yaw correction (radians). */
+    riderHeight: 1.78,
+    riderYaw: Math.PI,
     colliderFriction: 0.3,
     density: 1,
     linearDamping: 0,
@@ -261,6 +264,7 @@ export const CONFIG = {
     snowSteep: 0xb6c8da,
     board: 0x2b6cb0,
     jacket: 0xe05a2b,
+    pants: 0x2f3a4a,
     helmet: 0x1f2933,
     treeTrunk: 0x6b4a2f,
     treeFoliage: 0x2f5d3a,

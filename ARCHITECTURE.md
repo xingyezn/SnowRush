@@ -797,9 +797,12 @@ tools/physics-check.ts          无头回归测试（npm run test:physics）
 
 ### 33.4 外部资源
 
-- `public/models/` 存放 **CC0 1.0** 的 Quaternius 低多边形自然模型（树 / 岩石 / 灌木），
+- `public/models/` 存放 **CC0 1.0** 的 Quaternius 模型：
+  雪松 / 岩石 / 灌木（静态，用于散布）+ 人物 `rider.fbx`（骨骼动画）
   见 `public/models/LICENSE.txt`
 - 模型在 `main.ts` 中先加载完成再构建 `Game`，保证 `CourseGenerator` 可同步实例化
 - 加载失败时 `ModelLibrary` 会退回程序化几何体，游戏仍可运行
-- 模型统一归一化：底部对齐 y=0、XZ 居中、按 `visualHeight` 缩放到目标高度
+- 静态模型归一化：按材质拆分 geometry group → 合并 → 底部对齐 y=0、XZ 居中、缩放到 `visualHeight`
+- 人物模型不做合并（SkinnedMesh 需保留骨骼），仅缩放/对齐后由 `PlayerVisual` 用
+  `AnimationMixer` 播放 Idle / Jump / Death
 
