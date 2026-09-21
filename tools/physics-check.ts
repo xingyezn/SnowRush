@@ -16,6 +16,7 @@ import { PhysicsWorld } from '../src/physics/PhysicsWorld';
 import { Player } from '../src/player/Player';
 import { PlayerController } from '../src/player/PlayerController';
 import { buildHeightFieldData } from '../src/world/HeightFieldData';
+import { CourseGenerator } from '../src/world/CourseGenerator';
 import { terrainHeight } from '../src/world/TerrainHeight';
 
 class ScriptedInput implements InputState {
@@ -198,6 +199,56 @@ function check(label: string, condition: boolean, detail: string): void {
     `retained ${(retention * 100).toFixed(0)}% of ${startSpeed.toFixed(1)}m/s`,
   );
   check('carve turns the board', headingChange >= 1.2, `heading changed ${headingChange.toFixed(2)} rad`);
+}
+
+// --- Scenario 4: course structure -------------------------------------------
+{
+  const physics = new PhysicsWorld(CONFIG.world.gravity);
+  physics.setFixedStep(dt);
+  const scene = new THREE.Scene();
+  const course = new CourseGenerator(physics, scene);
+
+  const t = CONFIG.terrain;
+  const halfWidth = t.width / 2;
+  const all = [
+    ...course.trees.placements,
+    ...course.rocks.placements,
+    ...course.gates.gates,
+    ...course.ramps.placements,
+    ...course.checkpoints.checkpoints,
+    course.finish.placement,
+  ];
+  const inBounds = all.every((p) => Math.abs(p.x) <= halfWidth && Math.abs(p.z) <= t.length / 2);
+  const distinctZ = new Set(course.trees.placements.map((p) => Math.round(p.z))).size;
+
+  console.log('--- course ---');
+  check('course has trees', course.trees.placements.length >= 100, `${course.trees.placements.length} trees`);
+  check('course has rocks', course.rocks.placements.length >= 20, `${course.rocks.placements.length} rocks`);
+  check('course has gates', course.gates.gates.length >= 5, `${course.gates.gates.length} gates`);
+  check('course has ramps', course.ramps.placements.length >= 4, `${course.ramps.placements.length} ramps`);
+  check(
+    'course has checkpoints',
+    course.checkpoints.checkpoints.length >= 3,
+    `${course.checkpoints.checkpoints.length} checkpoints`,
+  );
+  check('objects stay in bounds', inBounds, `${all.length} objects, ${distinctZ} distinct tree rows`);
+  check(
+    'finish is near the end',
+    course.finish.placement.z < course.startZ - 2000,
+    `finish z=${course.finish.placement.z.toFixed(0)} (start ${course.startZ})`,
+  );
+  check(
+    'colliders match placements',
+    physics.countByKind('tree') === course.trees.placements.length &&
+      physics.countByKind('rock') === course.rocks.placements.length &&
+      physics.countByKind('gate') === course.gates.gates.length &&
+      physics.countByKind('ramp') === course.ramps.placements.length &&
+      physics.countByKind('checkpoint') === course.checkpoints.checkpoints.length &&
+      physics.countByKind('finish') === 1,
+    `tree=${physics.countByKind('tree')} rock=${physics.countByKind('rock')} ` +
+      `gate=${physics.countByKind('gate')} ramp=${physics.countByKind('ramp')} ` +
+      `checkpoint=${physics.countByKind('checkpoint')} finish=${physics.countByKind('finish')}`,
+  );
 }
 
 console.log('---');

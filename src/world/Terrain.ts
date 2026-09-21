@@ -46,7 +46,7 @@ export class Terrain {
     const collider = RAPIER.ColliderDesc.heightfield(data.nrows, data.ncols, data.heights, data.scale)
       .setFriction(t.friction)
       .setRestitution(0);
-    physics.world.createCollider(collider, this.body);
+    physics.createCollider(collider, this.body);
 
     this.createBoundaryWalls(physics);
   }
@@ -64,7 +64,7 @@ export class Terrain {
       const wall = RAPIER.ColliderDesc.cuboid(t.wallThickness, t.wallHalfHeight, halfLength).setFriction(
         0.2,
       );
-      physics.world.createCollider(wall, body);
+      physics.createCollider(wall, body);
     }
 
     const backBody = physics.world.createRigidBody(
@@ -75,6 +75,6 @@ export class Terrain {
       t.wallHalfHeight,
       t.wallThickness,
     ).setFriction(0.2);
-    physics.world.createCollider(backWall, backBody);
+    physics.createCollider(backWall, backBody);
   }
 }

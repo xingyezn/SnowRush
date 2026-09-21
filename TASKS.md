@@ -163,24 +163,24 @@
 
 ## 1. World Objects
 
-- [ ] 创建 `Tree.ts`
-- [ ] 创建 `Rock.ts`
-- [ ] 创建 `Gate.ts`
-- [ ] 创建 `JumpRamp.ts`
-- [ ] 创建 `Checkpoint.ts`
+- [x] 创建 `Tree.ts`
+- [x] 创建 `Rock.ts`
+- [x] 创建 `Gate.ts`
+- [x] 创建 `JumpRamp.ts`
+- [x] 创建 `Checkpoint.ts`
 
 ---
 
 ## 2. Course
 
-- [ ] 创建 `CourseGenerator.ts`
-- [ ] 创建 Course Section 数据结构
-- [ ] Intro Section
-- [ ] Trees Section
-- [ ] Slalom Section
-- [ ] Jump Section
-- [ ] High Speed Section
-- [ ] Finish Section
+- [x] 创建 `CourseGenerator.ts`
+- [x] 创建 Course Section 数据结构
+- [x] Intro Section
+- [x] Trees Section
+- [x] Slalom Section
+- [x] Jump Section
+- [x] High Speed Section
+- [x] Finish Section
 
 ---
 

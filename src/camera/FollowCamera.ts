@@ -1,5 +1,7 @@
 import * as THREE from 'three';
+import type { RigidBody } from '@dimforge/rapier3d';
 import { CONFIG } from '../core/Config';
+import type { PhysicsWorld } from '../physics/PhysicsWorld';
 import { terrainHeight } from '../world/TerrainHeight';
 
 /**
@@ -8,17 +10,27 @@ import { terrainHeight } from '../world/TerrainHeight';
  */
 export class FollowCamera {
   private readonly camera: THREE.PerspectiveCamera;
+  private readonly physics: PhysicsWorld;
   private readonly desiredPosition = new THREE.Vector3();
   private readonly desiredTarget = new THREE.Vector3();
   private readonly smoothedTarget = new THREE.Vector3();
   private readonly behind = new THREE.Vector3();
+  private readonly rayOrigin = new THREE.Vector3();
+  private readonly rayDirection = new THREE.Vector3();
   private initialized = false;
 
-  constructor(camera: THREE.PerspectiveCamera) {
+  constructor(camera: THREE.PerspectiveCamera, physics: PhysicsWorld) {
     this.camera = camera;
+    this.physics = physics;
   }
 
-  update(playerPosition: THREE.Vector3, heading: number, speed: number, dt: number): void {
+  update(
+    playerPosition: THREE.Vector3,
+    heading: number,
+    speed: number,
+    dt: number,
+    excludeBody?: RigidBody,
+  ): void {
     const c = CONFIG.camera;
     const t = THREE.MathUtils.clamp(speed / c.speedForMax, 0, 1);
 
@@ -34,6 +46,20 @@ export class FollowCamera {
     const groundAtCamera = terrainHeight(this.desiredPosition.x, this.desiredPosition.z);
     const minY = groundAtCamera + c.minGroundClearance;
     if (this.desiredPosition.y < minY) this.desiredPosition.y = minY;
+
+    // Pull the camera in if a tree / rock / ramp sits between it and the player.
+    this.rayOrigin.copy(playerPosition);
+    this.rayOrigin.y += c.lookHeight;
+    this.rayDirection.copy(this.desiredPosition).sub(this.rayOrigin);
+    const cameraDistance = this.rayDirection.length();
+    if (cameraDistance > 0.001) {
+      this.rayDirection.divideScalar(cameraDistance);
+      const hit = this.physics.castRay(this.rayOrigin, this.rayDirection, cameraDistance, excludeBody);
+      if (hit && hit.distance < cameraDistance) {
+        const clamped = Math.max(hit.distance - c.occlusionPadding, c.minOccludedDistance);
+        this.desiredPosition.copy(this.rayOrigin).addScaledVector(this.rayDirection, clamped);
+      }
+    }
 
     this.desiredTarget.copy(playerPosition);
     this.desiredTarget.x += -Math.sin(heading) * c.lookAhead;

@@ -50,8 +50,9 @@ export class Player {
       .setFriction(p.colliderFriction)
       .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min)
       .setRestitution(0)
-      .setDensity(p.density);
-    this.collider = physics.world.createCollider(colliderDesc, this.body);
+      .setDensity(p.density)
+      .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+    this.collider = physics.createCollider(colliderDesc, this.body, { kind: 'player', index: 0 });
 
     this.heading = spawn.heading;
   }

@@ -51,6 +51,77 @@ export const CONFIG = {
     wallHalfHeight: 600,
   },
 
+  course: {
+    seed: 20260922,
+    /** Keep objects this far from the side walls. */
+    edgeMargin: 16,
+    /** Section lengths in metres, laid out downhill from the start. */
+    sections: {
+      intro: 180,
+      trees: 700,
+      slalom: 500,
+      jump: 350,
+      highSpeed: 500,
+      bigJump: 350,
+      finish: 150,
+    },
+    trees: {
+      count: 150,
+      minSpacing: 10,
+      trunkRadius: 0.42,
+      trunkHeight: 3,
+      foliageRadius: 1.9,
+      foliageHeight: 4.4,
+      colliderRadius: 0.75,
+      colliderHeight: 5.5,
+    },
+    rocks: {
+      count: 45,
+      minSpacing: 13,
+      radius: 1.3,
+      colliderRadius: 1.1,
+    },
+    gates: {
+      spacing: 60,
+      laneOffset: 11,
+      width: 16,
+      poleRadius: 0.22,
+      height: 4.2,
+      /** Depth of the scoring sensor so fast players cannot tunnel through it. */
+      sensorDepth: 4,
+    },
+    ramps: {
+      width: 14,
+      length: 16,
+      height: 3.4,
+    },
+    checkpoints: {
+      count: 4,
+      width: 26,
+      height: 6,
+      sensorDepth: 8,
+    },
+    finish: {
+      width: 32,
+      height: 7,
+      sensorDepth: 8,
+    },
+  },
+
+  crash: {
+    respawnDelay: 1.6,
+    /** How fast the fall visual tips over, radians per second. */
+    tiltSpeed: 3.4,
+  },
+
+  score: {
+    gateScore: 50,
+  },
+
+  timer: {
+    countdownSeconds: 3,
+  },
+
   player: {
     acceleration: 8,
     maxSpeed: 36,
@@ -98,6 +169,9 @@ export const CONFIG = {
     lookAhead: 4,
     lookHeight: 1.2,
     minGroundClearance: 1.5,
+    /** Camera occlusion handling: pull in ahead of blockers. */
+    occlusionPadding: 0.4,
+    minOccludedDistance: 1.8,
   },
 
   hud: {
@@ -114,5 +188,13 @@ export const CONFIG = {
     board: 0x2b6cb0,
     jacket: 0xe05a2b,
     helmet: 0x1f2933,
+    treeTrunk: 0x6b4a2f,
+    treeFoliage: 0x2f5d3a,
+    rock: 0x7b8794,
+    gate: 0xd93b3b,
+    gatePole: 0xf2f2f2,
+    checkpoint: 0x2fa8d9,
+    ramp: 0xe8edf3,
+    finish: 0xf2c14e,
   },
 };

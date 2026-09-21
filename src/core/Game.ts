@@ -7,6 +7,7 @@ import { Renderer } from './Renderer';
 import { PhysicsWorld } from '../physics/PhysicsWorld';
 import { Lighting } from '../world/Lighting';
 import { Terrain } from '../world/Terrain';
+import { CourseGenerator } from '../world/CourseGenerator';
 import { terrainHeight } from '../world/TerrainHeight';
 import { Player, type SpawnPoint } from '../player/Player';
 import { PlayerController } from '../player/PlayerController';
@@ -23,6 +24,7 @@ export class Game {
   private readonly lighting: Lighting;
   private readonly physics: PhysicsWorld;
   private readonly terrain: Terrain;
+  readonly course: CourseGenerator;
   private readonly player: Player;
   private readonly playerController: PlayerController;
   private readonly playerVisual: PlayerVisual;
@@ -43,13 +45,14 @@ export class Game {
     this.physics.setFixedStep(CONFIG.world.fixedStep);
 
     this.terrain = new Terrain(this.physics, this.renderer.scene);
+    this.course = new CourseGenerator(this.physics, this.renderer.scene);
     this.player = new Player(this.physics, this.createSpawnPoint());
 
     this.playerVisual = new PlayerVisual();
     this.renderer.scene.add(this.playerVisual.group);
 
     this.playerController = new PlayerController(this.player, this.input, this.physics);
-    this.followCamera = new FollowCamera(this.renderer.camera);
+    this.followCamera = new FollowCamera(this.renderer.camera, this.physics);
     this.hud = new HUD(container);
 
     this.loop = new GameLoop(
@@ -102,7 +105,7 @@ export class Game {
     if (this.state === GameState.Playing) this.checkOutOfBounds(position);
 
     this.playerVisual.sync(position, this.player.heading);
-    this.followCamera.update(position, this.player.heading, this.player.getSpeed(), dt);
+    this.followCamera.update(position, this.player.heading, this.player.getSpeed(), dt, this.player.body);
     this.lighting.update(position);
     this.hud.update(this.player);
     this.renderer.render();
