@@ -209,6 +209,11 @@ export const CONFIG = {
     /** Camera occlusion handling: pull in ahead of blockers. */
     occlusionPadding: 0.4,
     minOccludedDistance: 1.4,
+    /** Airborne vertical follow is slower, so jumps get a lag. */
+    jumpLagRate: 2.2,
+    shakeDecay: 6,
+    landingShakeScale: 0.16,
+    crashShake: 0.5,
   },
 
   hud: {

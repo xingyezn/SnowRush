@@ -379,11 +379,11 @@
 
 ## 3. Camera
 
-- [ ] Speed FOV
-- [ ] Speed Distance
-- [ ] Jump Camera Lag
-- [ ] Landing Camera Shake
-- [ ] Crash Camera Feedback
+- [x] Speed FOV
+- [x] Speed Distance
+- [x] Jump Camera Lag
+- [x] Landing Camera Shake
+- [x] Crash Camera Feedback
 
 ---
 

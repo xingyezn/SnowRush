@@ -26,7 +26,7 @@ export class SnowEffects {
     this.ambient = new ParticlePool(scene, e.ambientCapacity, color, { gravity: -1.2, drag: 0.1 });
   }
 
-  update(dt: number, player: Player): void {
+  update(dt: number, player: Player): { landed: boolean; strength: number } {
     const pos = player.getPosition(this.playerPosition);
     const speed = player.getSpeed();
     const grounded = player.grounded;
@@ -75,10 +75,14 @@ export class SnowEffects {
     }
 
     // Landing burst, strength scaled by the impact speed.
+    let landed = false;
+    let strength = 0;
     if (!grounded) {
       this.fallSpeed = Math.max(this.fallSpeed, Math.max(-player.body.linvel().y, 0));
     } else if (!this.wasGrounded) {
-      this.burstAt(pos, Math.min(this.fallSpeed / 12, 1));
+      strength = Math.min(this.fallSpeed / 12, 1);
+      this.burstAt(pos, strength);
+      landed = true;
       this.fallSpeed = 0;
     }
     this.wasGrounded = grounded;
@@ -86,6 +90,8 @@ export class SnowEffects {
     this.trail.update(dt);
     this.burst.update(dt);
     this.ambient.update(dt);
+
+    return { landed, strength };
   }
 
   private burstAt(position: THREE.Vector3, strength: number): void {

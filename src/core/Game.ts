@@ -156,6 +156,7 @@ export class Game {
     this.scoreSystem.resetCombo();
     this.trickHud.clear();
     this.player.crash();
+    this.followCamera.addShake(CONFIG.camera.crashShake);
     this.hud.setMessage('CRASHED');
   };
 
@@ -292,8 +293,17 @@ export class Game {
       this.player.airRotationZ,
       this.player.lean,
     );
-    this.snowEffects.update(dt, this.player);
-    this.followCamera.update(position, this.player.heading, this.player.getSpeed(), dt);
+    const landing = this.snowEffects.update(dt, this.player);
+    if (landing.landed) {
+      this.followCamera.addShake(landing.strength * CONFIG.camera.landingShakeScale);
+    }
+    this.followCamera.update(
+      position,
+      this.player.heading,
+      this.player.getSpeed(),
+      dt,
+      this.player.grounded,
+    );
     this.lighting.update(position);
     this.hud.update(this.player);
     this.hud.setScore(this.scoreSystem.getScore());
