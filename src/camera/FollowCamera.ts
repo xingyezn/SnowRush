@@ -33,6 +33,15 @@ export class FollowCamera {
     if (strength > this.shake) this.shake = strength;
   }
 
+  /**
+   * Teleports the camera to the next computed position instead of interpolating
+   * (used on respawn / new run so the camera never sweeps through the terrain).
+   */
+  snap(): void {
+    this.initialized = false;
+    this.laggedInitialized = false;
+  }
+
   update(
     playerPosition: THREE.Vector3,
     heading: number,
@@ -59,12 +68,23 @@ export class FollowCamera {
     this.desiredPosition.copy(playerPosition).addScaledVector(this.behind, distance);
     this.desiredPosition.y = this.laggedY + height;
 
-    // Never let the camera sink into a hill behind the player.
-    const groundAtCamera = terrainHeight(this.desiredPosition.x, this.desiredPosition.z);
-    const minY = groundAtCamera + c.minGroundClearance;
-    if (this.desiredPosition.y < minY) this.desiredPosition.y = minY;
-
     this.applyOcclusion(playerPosition);
+
+    // Keep the whole boom above the terrain, not just the camera end point:
+    // otherwise a crest between the player and the camera reveals the underside.
+    this.rayOrigin.copy(playerPosition);
+    this.rayOrigin.y += c.lookHeight;
+    let lift = 0;
+    const samples = 8;
+    for (let i = 0; i <= samples; i++) {
+      const t = i / samples;
+      const x = this.rayOrigin.x + (this.desiredPosition.x - this.rayOrigin.x) * t;
+      const z = this.rayOrigin.z + (this.desiredPosition.z - this.rayOrigin.z) * t;
+      const y = this.rayOrigin.y + (this.desiredPosition.y - this.rayOrigin.y) * t;
+      const needed = terrainHeight(x, z) + c.minGroundClearance - y;
+      if (needed > lift) lift = needed;
+    }
+    if (lift > 0) this.desiredPosition.y += lift;
 
     this.desiredTarget.copy(playerPosition);
     this.desiredTarget.x += -Math.sin(heading) * c.lookAhead;

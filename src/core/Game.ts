@@ -191,6 +191,7 @@ export class Game {
     this.checkpointSystem.reset(this.startSpawn);
     this.player.setSpawn(this.startSpawn);
     this.player.respawn();
+    this.followCamera.snap();
     this.startMenu.hide();
     this.pauseMenu.hide();
     this.resultScreen.hide();
@@ -263,6 +264,7 @@ export class Game {
 
   private respawn(): void {
     this.checkpointSystem.respawnPlayer();
+    this.followCamera.snap();
     this.state = GameState.Playing;
     this.crashTimer = 0;
     this.crashElapsed = 0;
@@ -348,7 +350,7 @@ export class Game {
         : 0;
 
     const animation: RiderAnimation =
-      this.state === GameState.Crashed ? 'death' : this.player.grounded ? 'idle' : 'jump';
+      this.state === GameState.Crashed ? 'crash' : this.player.grounded ? 'idle' : 'air';
     this.playerVisual.setAnimation(animation);
     this.playerVisual.update(dt);
     this.playerVisual.sync(

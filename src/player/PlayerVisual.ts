@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../core/Config';
 import type { RiderAsset } from '../world/ModelLibrary';
 
-export type RiderAnimation = 'idle' | 'jump' | 'death';
+export type RiderAnimation = 'idle' | 'air' | 'crash';
 
 /**
  * Player visuals: snowboard plus an animated rider (CC0 Quaternius character).
@@ -18,7 +18,6 @@ export class PlayerVisual {
   private mixer: THREE.AnimationMixer | null = null;
   private readonly actions: Partial<Record<RiderAnimation, THREE.AnimationAction>> = {};
   private currentAnimation: RiderAnimation | null = null;
-  private readonly pose: Array<{ bone: THREE.Bone; x: number; y: number; z: number }> = [];
 
   constructor(rider: RiderAsset | null) {
     const p = CONFIG.player;
@@ -50,52 +49,32 @@ export class PlayerVisual {
     const clip = (suffix: string) =>
       rider.animations.find((animation) => animation.name.split('|').pop() === suffix);
 
-    const idle = clip('Man_Idle');
-    const jump = clip('Man_Jump');
-    const death = clip('Man_Death');
+    // The clip set depends on the model; fall back to whatever is available.
+    const idle = clip('Idle') ?? rider.animations[0];
+    const air = clip('Walking') ?? clip('Run') ?? clip('Jump') ?? idle;
     if (idle) this.actions.idle = this.mixer.clipAction(idle);
-    if (jump) this.actions.jump = this.mixer.clipAction(jump);
-    if (death) this.actions.death = this.mixer.clipAction(death);
+    if (air) this.actions.air = this.mixer.clipAction(air);
+    this.actions.crash = this.actions.idle;
 
-    this.buildRidingPose(rider.container);
+    this.addGoggles(rider.container);
     this.setAnimation('idle');
   }
 
-  /**
-   * Layered on top of the idle clip every frame: a crouched riding stance plus
-   * a helmet and goggles attached to the head bone.
-   */
-  private buildRidingPose(root: THREE.Object3D): void {
-    const p = CONFIG.player;
-    const bone = (name: string) => root.getObjectByName(name) as THREE.Bone | undefined;
-
-    const add = (name: string, x = 0, y = 0, z = 0) => {
-      const target = bone(name);
-      if (target) this.pose.push({ bone: target, x, y, z });
-    };
-
-    add('Torso', p.riderTorsoLean);
-    add('UpperLegL', -p.riderKneeBend * 0.35);
-    add('UpperLegR', -p.riderKneeBend * 0.35);
-    add('LowerLegL', p.riderKneeBend);
-    add('LowerLegR', p.riderKneeBend);
-
-    const head = bone('Head');
+  /** Ski goggles attached to the head bone (small extra charm). */
+  private addGoggles(root: THREE.Object3D): void {
+    const head = root.getObjectByName('Head') as THREE.Bone | undefined;
     if (!head) return;
 
-    const helmet = new THREE.Mesh(
-      new THREE.SphereGeometry(0.3, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.6),
-      new THREE.MeshStandardMaterial({ color: CONFIG.colors.helmet, roughness: 0.55, flatShading: true }),
-    );
-    helmet.position.set(0, 0.14, 0);
-    helmet.castShadow = true;
-    head.add(helmet);
-
     const goggles = new THREE.Mesh(
-      new THREE.BoxGeometry(0.42, 0.14, 0.12),
-      new THREE.MeshStandardMaterial({ color: 0x151a20, roughness: 0.3, metalness: 0.2, flatShading: true }),
+      new THREE.BoxGeometry(0.42, 0.15, 0.1),
+      new THREE.MeshStandardMaterial({
+        color: 0x151a20,
+        roughness: 0.25,
+        metalness: 0.2,
+        flatShading: true,
+      }),
     );
-    goggles.position.set(0, 0.18, 0.3);
+    goggles.position.set(0, 0.2, 0.3);
     goggles.castShadow = true;
     head.add(goggles);
   }
@@ -128,24 +107,12 @@ export class PlayerVisual {
     const previous = this.currentAnimation ? this.actions[this.currentAnimation] : undefined;
     this.currentAnimation = state;
 
-    next.reset();
-    if (state !== 'idle') {
-      next.setLoop(THREE.LoopOnce, 1);
-      next.clampWhenFinished = true;
-    }
-    next.fadeIn(0.15).play();
+    next.reset().fadeIn(0.15).play();
     if (previous && previous !== next) previous.fadeOut(0.15);
   }
 
   update(dt: number): void {
-    if (!this.mixer) return;
-    this.mixer.update(dt);
-    // Re-apply the riding stance on top of the freshly sampled animation pose.
-    for (const entry of this.pose) {
-      if (entry.x) entry.bone.rotateX(entry.x);
-      if (entry.y) entry.bone.rotateY(entry.y);
-      if (entry.z) entry.bone.rotateZ(entry.z);
-    }
+    this.mixer?.update(dt);
   }
 
   sync(position: THREE.Vector3, heading: number, tilt = 0, pitch = 0, roll = 0, lean = 0): void {

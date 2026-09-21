@@ -20,7 +20,7 @@ Nature - "Christmas Pack"
   pine_snow1.fbx    (PineTree_Snow)
   pine_snow2.fbx    (PineTreeTall_Snow)
 
-Characters - "Animated Men Characters"
---------------------------------------
-  rider.fbx         (Male_LongSleeve)
-  Animations used: Man_Idle, Man_Jump, Man_Death
+Characters - "Animal Pack Vol.2"
+--------------------------------
+  rider.fbx         (Cat)
+  Animations used: Idle, Walking

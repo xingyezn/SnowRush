@@ -9,9 +9,9 @@ import { GateField, type GatePlacement } from './Gate';
 import { JumpRampField, type RampPlacement } from './JumpRamp';
 import type { ModelLibrary } from './ModelLibrary';
 import { createRockField } from './Rock';
-import type { ScatterField } from './ScatterField';
+import { ScatterField, type ScatterPlacement } from './ScatterField';
 import { createTreeField } from './Tree';
-import { terrainHeight } from './TerrainHeight';
+import { courseCenterX, terrainHeight } from './TerrainHeight';
 
 /** Vertical cylinder used for analytic camera occlusion (trees / rocks). */
 export interface Occluder {
@@ -41,6 +41,8 @@ export class CourseGenerator {
   readonly trees: ScatterField;
   readonly rocks: ScatterField;
   readonly bushes: ScatterField;
+  readonly forest: ScatterField;
+  readonly cliffs: ScatterField;
   readonly gates: GateField;
   readonly ramps: JumpRampField;
   readonly checkpoints: CheckpointField;
@@ -56,6 +58,8 @@ export class CourseGenerator {
     const halfWidth = t.playWidth / 2;
     const minX = -halfWidth + c.edgeMargin;
     const maxX = halfWidth - c.edgeMargin;
+    /** Object placement is relative to the meandering centre line. */
+    const centerAt = (z: number) => courseCenterX(z);
     this.startZ = t.length / 2 - t.startOffsetZ;
 
     let cursor = this.startZ;
@@ -81,7 +85,7 @@ export class CourseGenerator {
     const gateCount = Math.floor((slalom.zStart - slalom.zEnd) / c.gates.spacing);
     for (let i = 0; i < gateCount; i++) {
       const z = slalom.zStart - c.gates.spacing * (i + 0.5);
-      const x = (i % 2 === 0 ? -1 : 1) * c.gates.laneOffset + rng.range(-2, 2);
+      const x = centerAt(z) + (i % 2 === 0 ? -1 : 1) * c.gates.laneOffset + rng.range(-2, 2);
       gatePlacements.push({ x, z });
       reserved.push({ x, z });
     }
@@ -91,7 +95,7 @@ export class CourseGenerator {
     const addRamps = (section: ZRange, count: number) => {
       for (let i = 0; i < count; i++) {
         const z = section.zStart - ((i + 0.5) / count) * (section.zStart - section.zEnd);
-        const x = rng.range(-6, 6);
+        const x = centerAt(z) + rng.range(-6, 6);
         rampPlacements.push({ x, z });
         reserved.push({ x, z });
       }
@@ -104,13 +108,14 @@ export class CourseGenerator {
     const checkpointZ = [treesSection.zEnd, slalom.zEnd, highSpeed.zEnd, bigJump.zEnd];
     for (let i = 0; i < Math.min(c.checkpoints.count, checkpointZ.length); i++) {
       const z = checkpointZ[i] + 20;
-      checkpointPlacements.push({ x: 0, z });
-      reserved.push({ x: 0, z });
+      const x = centerAt(z);
+      checkpointPlacements.push({ x, z });
+      reserved.push({ x, z });
     }
 
     // --- Finish -------------------------------------------------------------
     const finishZ = finishSection.zEnd + c.sections.finish * 0.5;
-    const finishPlacement = { x: 0, z: finishZ };
+    const finishPlacement = { x: centerAt(finishZ), z: finishZ };
     reserved.push(finishPlacement);
 
     // --- Vegetation scattered across the tree + high speed sections ---------
@@ -122,8 +127,8 @@ export class CourseGenerator {
       while (out.length < count && attempts < maxAttempts) {
         attempts++;
         const zone = rng.pick(scatterZones);
-        const x = rng.range(minX, maxX);
         const z = rng.range(zone.zEnd, zone.zStart);
+        const x = centerAt(z) + rng.range(minX, maxX);
         let ok = true;
         for (const o of out) {
           if ((o.x - x) ** 2 + (o.z - z) ** 2 < minSpacing ** 2) {
@@ -181,9 +186,42 @@ export class CourseGenerator {
       })),
     ];
 
+    // --- Decorative forest + cliffs along both sides (no colliders) ---------
+    const maxAbsX = t.width / 2 - 4;
+    const sideBand = (count: number, inset: number, width: number, scaleMin: number, scaleMax: number) => {
+      const placements: ScatterPlacement[] = [];
+      for (let i = 0; i < count; i++) {
+        const side = i % 2 === 0 ? -1 : 1;
+        const z = rng.range(-t.length / 2 + 30, t.length / 2 - 30);
+        const offset = inset + rng.range(0, width);
+        const raw = courseCenterX(z) + side * (halfWidth + offset);
+        placements.push({
+          x: Math.max(-maxAbsX, Math.min(maxAbsX, raw)),
+          z,
+          scale: rng.range(scaleMin, scaleMax),
+          rotation: rng.range(0, Math.PI * 2),
+        });
+      }
+      return placements;
+    };
+    const forestPlacements = sideBand(c.forest.count, c.forest.inset, c.forest.width, 0.8, 1.5);
+    const cliffPlacements = sideBand(c.cliffs.count, c.cliffs.inset, c.cliffs.width, 1.6, 3.6);
+
     this.trees = createTreeField(physics, scene, treePlacements, models.trees);
     this.rocks = createRockField(physics, scene, rockPlacements, models.rocks);
     this.bushes = createBushField(physics, scene, bushPlacements, models.bushes);
+    this.forest = new ScatterField({
+      physics,
+      scene,
+      placements: forestPlacements,
+      models: models.trees,
+    });
+    this.cliffs = new ScatterField({
+      physics,
+      scene,
+      placements: cliffPlacements,
+      models: models.rocks,
+    });
     this.gates = new GateField(physics, scene, gatePlacements);
     this.ramps = new JumpRampField(physics, scene, rampPlacements);
     this.checkpoints = new CheckpointField(physics, scene, checkpointPlacements);

@@ -49,9 +49,16 @@ export const CONFIG = {
     segmentsZ: 480,
     /** Playable corridor width; the fence and walls sit at playWidth / 2. */
     playWidth: 140,
-    /** Terrain rises into valley walls beyond this far from the corridor. */
-    edgeStartOffset: 15,
-    edgeRiseFactor: 0.04,
+    /** Terrain rises into cliff walls beyond this far from the corridor. */
+    edgeStartOffset: 12,
+    edgeRiseFactor: 0.045,
+    /** Lateral meander of the course centre line (adds turns to the run). */
+    curveAmp1: 17,
+    curveFreq1: 0.0021,
+    curvePhase1: 0.6,
+    curveAmp2: 8,
+    curveFreq2: 0.0053,
+    curvePhase2: 2.1,
     /** dy/dz of the base slope. Larger = steeper descent toward -Z. */
     baseSlope: 0.3,
     largeWaveAmp: 5,
@@ -122,6 +129,19 @@ export const CONFIG = {
       postRadius: 0.14,
       postHeight: 1.4,
       railThickness: 0.34,
+      /** Physics wall segment length (coarser than the fence posts). */
+      wallSpacing: 50,
+    },
+    /** Decorative forest and cliff band along both sides of the corridor. */
+    forest: {
+      count: 420,
+      inset: 4,
+      width: 26,
+    },
+    cliffs: {
+      count: 110,
+      inset: 2,
+      width: 12,
     },
     checkpoints: {
       count: 4,
@@ -200,11 +220,8 @@ export const CONFIG = {
     maxLean: 0.35,
     leanRate: 8,
     /** Animated rider model: target height and yaw correction (radians). */
-    riderHeight: 1.78,
-    riderYaw: Math.PI,
-    /** Riding stance layered on top of the idle animation (radians). */
-    riderTorsoLean: 0.12,
-    riderKneeBend: 0.25,
+    riderHeight: 1.3,
+    riderYaw: -Math.PI / 2,
     colliderFriction: 0.3,
     density: 1,
     linearDamping: 0,
@@ -268,6 +285,7 @@ export const CONFIG = {
     board: 0x2b6cb0,
     jacket: 0xe05a2b,
     pants: 0x2f3a4a,
+    riderFur: 0x8d96a1,
     helmet: 0x1f2933,
     treeTrunk: 0x6b4a2f,
     treeFoliage: 0x2f5d3a,

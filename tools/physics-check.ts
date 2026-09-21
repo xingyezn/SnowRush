@@ -26,7 +26,7 @@ import { buildHeightFieldData } from '../src/world/HeightFieldData';
 import { CourseGenerator } from '../src/world/CourseGenerator';
 import { createFallbackLibrary } from '../src/world/ModelLibrary';
 import { JumpRampField } from '../src/world/JumpRamp';
-import { terrainHeight } from '../src/world/TerrainHeight';
+import { courseCenterX, terrainHeight } from '../src/world/TerrainHeight';
 
 class ScriptedInput implements InputState {
   private readonly down = new Set<InputAction>();
@@ -397,7 +397,9 @@ function check(label: string, condition: boolean, detail: string): void {
     ...course.checkpoints.checkpoints,
     course.finish.placement,
   ];
-  const inBounds = all.every((p) => Math.abs(p.x) <= halfWidth && Math.abs(p.z) <= t.length / 2);
+  const inBounds = all.every(
+    (p) => Math.abs(p.x - courseCenterX(p.z)) <= halfWidth + 1 && Math.abs(p.z) <= t.length / 2,
+  );
   const distinctZ = new Set(course.trees.placements.map((p) => Math.round(p.z))).size;
 
   console.log('--- course ---');

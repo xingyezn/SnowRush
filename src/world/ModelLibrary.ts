@@ -221,12 +221,14 @@ async function loadRider(loader: FBXLoader): Promise<RiderAsset | null> {
     const height = bounds.max.y - bounds.min.y;
     const scale = CONFIG.player.riderHeight / Math.max(height, 0.0001);
 
-    // Recolour the outfit so the rider reads against the snow.
+    // Recolour so the rider reads against the snow (material names differ per
+    // model: human outfits vs. the cat's Grey/White/Pink fur).
     const outfit: Record<string, number> = {
       Shirt: CONFIG.colors.jacket,
       Pants: CONFIG.colors.pants,
       Socks: CONFIG.colors.pants,
       Hair: CONFIG.colors.helmet,
+      Grey: CONFIG.colors.riderFur,
     };
     object.traverse((child) => {
       const mesh = child as THREE.Mesh;
