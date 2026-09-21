@@ -274,20 +274,20 @@
 
 ## 1. Jump
 
-- [ ] Space Jump
-- [ ] Grounded Detection
-- [ ] AIRBORNE 状态
-- [ ] Ramp Jump
-- [ ] Landing Detection
+- [x] Space Jump
+- [x] Grounded Detection
+- [x] AIRBORNE 状态
+- [x] Ramp Jump
+- [x] Landing Detection
 
 ---
 
 ## 2. Air Control
 
-- [ ] W Frontflip
-- [ ] S Backflip
-- [ ] A / D Spin
-- [ ] 记录累计旋转角度
+- [x] W Frontflip
+- [x] S Backflip
+- [x] A / D Spin
+- [x] 记录累计旋转角度
 
 ---
 

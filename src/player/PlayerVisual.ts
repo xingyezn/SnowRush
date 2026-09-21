@@ -45,9 +45,10 @@ export class PlayerVisual {
     this.tiltGroup.add(head);
   }
 
-  sync(position: THREE.Vector3, heading: number, tilt = 0): void {
+  sync(position: THREE.Vector3, heading: number, tilt = 0, pitch = 0, roll = 0): void {
     this.group.position.copy(position);
     this.group.rotation.y = heading;
-    this.tiltGroup.rotation.z = tilt;
+    // pitch = front/backflip, roll + tilt = roll / crash fall
+    this.tiltGroup.rotation.set(pitch, 0, roll + tilt);
   }
 }

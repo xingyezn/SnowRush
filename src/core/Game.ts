@@ -70,8 +70,8 @@ export class Game {
     this.playerVisual = new PlayerVisual();
     this.renderer.scene.add(this.playerVisual.group);
 
-    this.playerController = new PlayerController(this.player, this.input, this.physics);
-    this.followCamera = new FollowCamera(this.renderer.camera, this.physics);
+    this.playerController = new PlayerController(this.player, this.input);
+    this.followCamera = new FollowCamera(this.renderer.camera, this.course.occluders);
     this.hud = new HUD(container);
     this.resultScreen = new ResultScreen(container);
 
@@ -254,8 +254,14 @@ export class Game {
         ? Math.min(this.crashElapsed * CONFIG.crash.tiltSpeed, 1.5)
         : 0;
 
-    this.playerVisual.sync(position, this.player.heading, tilt);
-    this.followCamera.update(position, this.player.heading, this.player.getSpeed(), dt, this.player.body);
+    this.playerVisual.sync(
+      position,
+      this.player.heading,
+      tilt,
+      this.player.airRotationX,
+      this.player.airRotationZ,
+    );
+    this.followCamera.update(position, this.player.heading, this.player.getSpeed(), dt);
     this.lighting.update(position);
     this.hud.update(this.player);
     this.hud.setScore(this.scoreSystem.getScore());

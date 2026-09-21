@@ -11,6 +11,7 @@ export type InputAction =
 /** Minimal surface consumers depend on, so controllers stay testable. */
 export interface InputState {
   isDown(action: InputAction): boolean;
+  wasPressed(action: InputAction): boolean;
 }
 
 const KEY_BINDINGS: Record<string, InputAction> = {

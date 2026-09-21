@@ -8,6 +8,16 @@ import { GateField, type GatePlacement } from './Gate';
 import { JumpRampField, type RampPlacement } from './JumpRamp';
 import { RockField, type RockPlacement } from './Rock';
 import { TreeField, type TreePlacement } from './Tree';
+import { terrainHeight } from './TerrainHeight';
+
+/** Vertical cylinder used for analytic camera occlusion (trees / rocks). */
+export interface Occluder {
+  x: number;
+  z: number;
+  radius: number;
+  height: number;
+  groundY: number;
+}
 
 interface Point {
   x: number;
@@ -31,6 +41,7 @@ export class CourseGenerator {
   readonly ramps: JumpRampField;
   readonly checkpoints: CheckpointField;
   readonly finish: FinishArea;
+  readonly occluders: Occluder[];
   readonly startZ: number;
 
   constructor(physics: PhysicsWorld, scene: THREE.Scene) {
@@ -142,6 +153,23 @@ export class CourseGenerator {
       scale: rng.range(0.6, 1.4),
       rotation: rng.range(0, Math.PI * 2),
     }));
+
+    this.occluders = [
+      ...treePlacements.map((t) => ({
+        x: t.x,
+        z: t.z,
+        radius: c.trees.foliageRadius * t.scale * 0.85,
+        height: (c.trees.trunkHeight + c.trees.foliageHeight * 1.4) * t.scale,
+        groundY: terrainHeight(t.x, t.z),
+      })),
+      ...rockPlacements.map((r) => ({
+        x: r.x,
+        z: r.z,
+        radius: c.rocks.colliderRadius * r.scale,
+        height: c.rocks.colliderRadius * r.scale * 2,
+        groundY: terrainHeight(r.x, r.z),
+      })),
+    ];
 
     this.trees = new TreeField(physics, scene, treePlacements);
     this.rocks = new RockField(physics, scene, rockPlacements);

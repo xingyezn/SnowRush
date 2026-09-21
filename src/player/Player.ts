@@ -32,6 +32,12 @@ export class Player {
   grounded = false;
   state: PlayerState = PlayerState.Airborne;
 
+  /** Rotation accumulated since takeoff (radians). X = flip, Y = spin, Z = roll. */
+  airRotationX = 0;
+  airRotationY = 0;
+  airRotationZ = 0;
+  airTime = 0;
+
   constructor(physics: PhysicsWorld, spawn: SpawnPoint) {
     this.spawn = { ...spawn };
     const p = CONFIG.player;
@@ -79,6 +85,13 @@ export class Player {
 
   setSpawn(spawn: SpawnPoint): void {
     this.spawn = { ...spawn };
+  }
+
+  resetAirRotations(): void {
+    this.airRotationX = 0;
+    this.airRotationY = 0;
+    this.airRotationZ = 0;
+    this.airTime = 0;
   }
 
   /** Enter the crash state: controls stop, the board scrubs most of its speed. */

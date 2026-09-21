@@ -97,9 +97,11 @@ export const CONFIG = {
       sensorDepth: 4,
     },
     ramps: {
-      width: 16,
-      length: 18,
-      height: 3.8,
+      // Angle must exceed the terrain slope (~16.7 deg) or the kicker only
+      // makes the descent shallower instead of launching the rider.
+      width: 14,
+      length: 11,
+      height: 8,
     },
     boundary: {
       postSpacing: 12,
@@ -141,8 +143,14 @@ export const CONFIG = {
     turnDrag: 0.04,
     friction: 0.995,
     brakeForce: 12,
-    jumpForce: 8,
+    jumpForce: 12,
     boostForce: 12,
+    /** Blocks a second jump until this long after takeoff. */
+    jumpLockTime: 0.2,
+    /** Air control rates (rad/s): W/S pitch (flip), A/D yaw (spin). */
+    airFlipSpeed: 5.2,
+    airSpinSpeed: 5.5,
+    airFriction: 0.999,
     /** How fast velocity direction snaps to heading. Higher = tighter carve. */
     gripRate: 9,
     airTurnFactor: 0.35,

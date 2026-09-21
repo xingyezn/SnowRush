@@ -1,16 +1,17 @@
 import * as THREE from 'three';
-import type { RigidBody } from '@dimforge/rapier3d';
 import { CONFIG } from '../core/Config';
-import type { PhysicsWorld } from '../physics/PhysicsWorld';
 import { terrainHeight } from '../world/TerrainHeight';
+import type { Occluder } from '../world/CourseGenerator';
 
 /**
  * Third person chase camera with damping.
  * Distance / height / FOV all grow with speed for a stronger sense of velocity.
+ * Occlusion is analytic (terrain height + tree/rock cylinders) so it does not
+ * depend on the physics query layer.
  */
 export class FollowCamera {
   private readonly camera: THREE.PerspectiveCamera;
-  private readonly physics: PhysicsWorld;
+  private readonly occluders: readonly Occluder[];
   private readonly desiredPosition = new THREE.Vector3();
   private readonly desiredTarget = new THREE.Vector3();
   private readonly smoothedTarget = new THREE.Vector3();
@@ -19,18 +20,12 @@ export class FollowCamera {
   private readonly rayDirection = new THREE.Vector3();
   private initialized = false;
 
-  constructor(camera: THREE.PerspectiveCamera, physics: PhysicsWorld) {
+  constructor(camera: THREE.PerspectiveCamera, occluders: readonly Occluder[]) {
     this.camera = camera;
-    this.physics = physics;
+    this.occluders = occluders;
   }
 
-  update(
-    playerPosition: THREE.Vector3,
-    heading: number,
-    speed: number,
-    dt: number,
-    excludeBody?: RigidBody,
-  ): void {
+  update(playerPosition: THREE.Vector3, heading: number, speed: number, dt: number): void {
     const c = CONFIG.camera;
     const t = THREE.MathUtils.clamp(speed / c.speedForMax, 0, 1);
 
@@ -47,19 +42,7 @@ export class FollowCamera {
     const minY = groundAtCamera + c.minGroundClearance;
     if (this.desiredPosition.y < minY) this.desiredPosition.y = minY;
 
-    // Pull the camera in if a tree / rock / ramp sits between it and the player.
-    this.rayOrigin.copy(playerPosition);
-    this.rayOrigin.y += c.lookHeight;
-    this.rayDirection.copy(this.desiredPosition).sub(this.rayOrigin);
-    const cameraDistance = this.rayDirection.length();
-    if (cameraDistance > 0.001) {
-      this.rayDirection.divideScalar(cameraDistance);
-      const hit = this.physics.castRay(this.rayOrigin, this.rayDirection, cameraDistance, excludeBody);
-      if (hit && hit.distance < cameraDistance) {
-        const clamped = Math.max(hit.distance - c.occlusionPadding, c.minOccludedDistance);
-        this.desiredPosition.copy(this.rayOrigin).addScaledVector(this.rayDirection, clamped);
-      }
-    }
+    this.applyOcclusion(playerPosition);
 
     this.desiredTarget.copy(playerPosition);
     this.desiredTarget.x += -Math.sin(heading) * c.lookAhead;
@@ -81,5 +64,47 @@ export class FollowCamera {
     this.camera.fov += (targetFov - this.camera.fov) * (1 - Math.exp(-c.fovLerp * dt));
     this.camera.updateProjectionMatrix();
     this.camera.lookAt(this.smoothedTarget);
+  }
+
+  /** Pull the camera in when a tree / rock cylinder blocks the view. */
+  private applyOcclusion(playerPosition: THREE.Vector3): void {
+    const c = CONFIG.camera;
+    this.rayOrigin.copy(playerPosition);
+    this.rayOrigin.y += c.lookHeight;
+    this.rayDirection.copy(this.desiredPosition).sub(this.rayOrigin);
+    const cameraDistance = this.rayDirection.length();
+    if (cameraDistance <= 0.001) return;
+    this.rayDirection.divideScalar(cameraDistance);
+
+    let nearest = cameraDistance;
+    for (const o of this.occluders) {
+      const ox = o.x - this.rayOrigin.x;
+      const oz = o.z - this.rayOrigin.z;
+      const reach = cameraDistance + o.radius + 2;
+      if (ox * ox + oz * oz > reach * reach) continue;
+
+      const dirXZ =
+        this.rayDirection.x * this.rayDirection.x + this.rayDirection.z * this.rayDirection.z;
+      if (dirXZ < 1e-6) continue;
+
+      // Closest point on the ray (in the horizontal plane) to the cylinder axis.
+      let t = (ox * this.rayDirection.x + oz * this.rayDirection.z) / dirXZ;
+      if (t < 0) t = 0;
+      else if (t > cameraDistance) t = cameraDistance;
+
+      const px = this.rayOrigin.x + this.rayDirection.x * t;
+      const pz = this.rayOrigin.z + this.rayDirection.z * t;
+      if (Math.hypot(o.x - px, o.z - pz) > o.radius) continue;
+
+      const py = this.rayOrigin.y + this.rayDirection.y * t;
+      if (py < o.groundY || py > o.groundY + o.height) continue;
+
+      if (t < nearest) nearest = t;
+    }
+
+    if (nearest < cameraDistance) {
+      const clamped = Math.max(nearest - c.occlusionPadding, c.minOccludedDistance);
+      this.desiredPosition.copy(this.rayOrigin).addScaledVector(this.rayDirection, clamped);
+    }
   }
 }

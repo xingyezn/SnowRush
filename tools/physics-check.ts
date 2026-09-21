@@ -17,16 +17,25 @@ import { Player } from '../src/player/Player';
 import { PlayerController } from '../src/player/PlayerController';
 import { buildHeightFieldData } from '../src/world/HeightFieldData';
 import { CourseGenerator } from '../src/world/CourseGenerator';
+import { JumpRampField } from '../src/world/JumpRamp';
 import { terrainHeight } from '../src/world/TerrainHeight';
 
 class ScriptedInput implements InputState {
   private readonly down = new Set<InputAction>();
+  private readonly pressed = new Set<InputAction>();
   set(action: InputAction, value: boolean): void {
+    if (value && !this.down.has(action)) this.pressed.add(action);
     if (value) this.down.add(action);
     else this.down.delete(action);
   }
   isDown(action: InputAction): boolean {
     return this.down.has(action);
+  }
+  wasPressed(action: InputAction): boolean {
+    return this.pressed.has(action);
+  }
+  clearPressed(): void {
+    this.pressed.clear();
   }
 }
 
@@ -72,7 +81,7 @@ function createRig(): Rig {
 
   const input = new ScriptedInput();
   const player = new Player(physics, spawn);
-  const controller = new PlayerController(player, input, physics);
+  const controller = new PlayerController(player, input);
   return { physics, player, controller, input, spawnZ };
 }
 
@@ -201,7 +210,78 @@ function check(label: string, condition: boolean, detail: string): void {
   check('carve turns the board', headingChange >= 1.2, `heading changed ${headingChange.toFixed(2)} rad`);
 }
 
-// --- Scenario 4: course structure -------------------------------------------
+// --- Scenario 4: jump + air rotation ----------------------------------------
+{
+  const { physics, player, controller, input } = createRig();
+  // Settle onto the slope.
+  for (let i = 0; i < 300; i++) {
+    controller.update(dt);
+    physics.step();
+    input.clearPressed();
+    if (i > 30 && player.grounded) break;
+  }
+
+  // Tap jump; retry across a few steps since the board can skip on a crest.
+  let jumped = false;
+  for (let attempt = 0; attempt < 40 && !jumped; attempt++) {
+    const beforeY = player.body.translation().y;
+    input.set('jump', true);
+    controller.update(dt);
+    physics.step();
+    input.clearPressed();
+    input.set('jump', false);
+    if (player.body.translation().y > beforeY + 0.05) jumped = true;
+  }
+
+  let airborneSteps = 0;
+  let maxPitch = 0;
+  input.set('brake', true); // hold S = backflip
+  for (let i = 0; i < 150; i++) {
+    controller.update(dt);
+    physics.step();
+    input.clearPressed();
+    if (!player.grounded) airborneSteps++;
+    maxPitch = Math.max(maxPitch, player.airRotationX);
+  }
+  input.set('brake', false);
+
+  console.log('--- jump ---');
+  check('Space jump leaves the ground', jumped, `jumped=${jumped}`);
+  check('airtime is enough for tricks', airborneSteps > 20, `airborne ${airborneSteps} steps`);
+  check('backflip accumulates rotation', maxPitch > 3, `airRotationX ${maxPitch.toFixed(2)} rad`);
+}
+
+// --- Scenario 5: ramp launch ------------------------------------------------
+{
+  const { physics, player, controller, input } = createRig();
+  const scene = new THREE.Scene();
+  const spawnZ = CONFIG.terrain.length / 2 - CONFIG.terrain.startOffsetZ;
+  new JumpRampField(physics, scene, [{ x: 0, z: spawnZ - 60 }]);
+
+  let maxUpVelocity = 0;
+  let leftGround = false;
+  for (let i = 0; i < 900; i++) {
+    input.set('accelerate', true);
+    controller.update(dt);
+    physics.step();
+    input.clearPressed();
+    const vy = player.body.linvel().y;
+    if (!player.grounded && vy > 1) {
+      leftGround = true;
+      maxUpVelocity = Math.max(maxUpVelocity, vy);
+    }
+    if (leftGround && player.grounded) break;
+  }
+
+  console.log('--- ramp ---');
+  check(
+    'ramp launches the player',
+    leftGround && maxUpVelocity > 2,
+    `max upward velocity ${maxUpVelocity.toFixed(2)} m/s`,
+  );
+}
+
+// --- Scenario 6: course structure -------------------------------------------
 {
   const physics = new PhysicsWorld(CONFIG.world.gravity);
   physics.setFixedStep(dt);
