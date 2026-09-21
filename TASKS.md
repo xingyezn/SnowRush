@@ -389,14 +389,16 @@
 
 ## 4. Audio
 
-- [ ] AudioSystem
-- [ ] Wind
-- [ ] Snow Sliding
-- [ ] Jump
-- [ ] Landing
-- [ ] Crash
-- [ ] Checkpoint
-- [ ] Combo
+- [x] AudioSystem
+- [x] Wind
+- [x] Snow Sliding
+- [x] Jump
+- [x] Landing
+- [x] Crash
+- [x] Checkpoint
+- [x] Combo
+
+> 采用 Web Audio 程序化合成（无外部音频资源），保证 `git clone → npm install → npm run dev` 即可用。
 
 ---
 

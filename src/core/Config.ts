@@ -230,6 +230,14 @@ export const CONFIG = {
     speedUnitFactor: 3.6,
   },
 
+  audio: {
+    masterVolume: 0.5,
+    windMaxGain: 0.35,
+    slideMaxGain: 0.3,
+    minSpeed: 6,
+    maxSpeed: 36,
+  },
+
   effects: {
     trailCapacity: 900,
     burstCapacity: 400,

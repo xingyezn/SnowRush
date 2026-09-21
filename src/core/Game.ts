@@ -23,6 +23,7 @@ import { CollisionSystem } from '../systems/CollisionSystem';
 import { CheckpointSystem } from '../systems/CheckpointSystem';
 import { ScoreSystem } from '../systems/ScoreSystem';
 import { Timer } from '../systems/Timer';
+import { AudioSystem } from '../systems/AudioSystem';
 import { TrickSystem, type LandingResult } from '../systems/TrickSystem';
 
 /**
@@ -49,6 +50,7 @@ export class Game {
   private readonly collisionSystem: CollisionSystem;
   private readonly checkpointSystem: CheckpointSystem;
   private readonly trickSystem: TrickSystem;
+  private readonly audio = new AudioSystem();
   private readonly scoreSystem = new ScoreSystem();
   private readonly timer = new Timer();
   private readonly startSpawn: SpawnPoint;
@@ -59,6 +61,7 @@ export class Game {
   private crashElapsed = 0;
   private countdownRemaining = 0;
   private maxSpeedKmh = 0;
+  private wasGrounded = true;
 
   constructor(container: HTMLElement) {
     this.renderer = new Renderer(container);
@@ -159,6 +162,7 @@ export class Game {
     this.trickHud.clear();
     this.player.crash();
     this.followCamera.addShake(CONFIG.camera.crashShake);
+    this.audio.playCrash();
     this.hud.setMessage('CRASHED');
   };
 
@@ -176,6 +180,7 @@ export class Game {
         : result.baseScore;
     const award = this.scoreSystem.addTrick(baseScore);
     this.trickHud.show(result.tricks, award.points, award.multiplier);
+    this.audio.playCombo(this.scoreSystem.getComboStreak());
   };
 
   private readonly handleGate = (): void => {
@@ -184,6 +189,7 @@ export class Game {
 
   private readonly handleCheckpoint = (index: number): void => {
     this.checkpointSystem.setCheckpoint(index, this.course.checkpoints.checkpoints[index]);
+    this.audio.playCheckpoint();
     this.hud.setMessage('CHECKPOINT');
   };
 
@@ -296,9 +302,14 @@ export class Game {
       this.player.lean,
     );
     const landing = this.snowEffects.update(dt, this.player);
+    const grounded = this.player.grounded;
+    if (!grounded && this.wasGrounded) this.audio.playJump();
     if (landing.landed) {
       this.followCamera.addShake(landing.strength * CONFIG.camera.landingShakeScale);
+      this.audio.playLanding(landing.strength);
     }
+    this.wasGrounded = grounded;
+    this.audio.update(this.player.getSpeed(), grounded);
     this.followCamera.update(
       position,
       this.player.heading,
