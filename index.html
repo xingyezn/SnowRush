@@ -1,13 +1,32 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="SnowRush —— 浏览器里的第三人称 Low-poly 街机单板滑雪游戏。转向、加速、跳跃、空中特技，一路冲过终点。"
+    />
+    <meta name="theme-color" content="#a8d5f2" />
+    <meta property="og:title" content="SnowRush" />
+    <meta
+      property="og:description"
+      content="浏览器里的 Low-poly 街机单板滑雪游戏：转向、加速、跳跃与空中特技。"
+    />
+    <meta property="og:type" content="website" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <title>SnowRush</title>
+    <title>SnowRush · 单板滑雪</title>
   </head>
   <body>
-    <div id="app"><div id="loading">LOADING…</div></div>
+    <div id="app">
+      <div id="loading">
+        <div class="loading-logo">SNOWRUSH</div>
+        <div class="loading-sub">LOW-POLY SNOWBOARDING</div>
+        <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+        <div class="loading-percent">0%</div>
+        <div class="loading-tip"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

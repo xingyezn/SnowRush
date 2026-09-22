@@ -816,6 +816,27 @@ tools/physics-check.ts          无头回归测试（npm run test:physics）
   提供跟随玩家的低多边形云朵
 - 文案统一走 `src/ui/I18n.ts`：`t(key)` 取词条，`onLanguageChange()` 让各 UI 重渲染；
   默认中文，可切英文，存于 localStorage
+- 外围外壳（Phase 1）：`index.html` 启动页 + `main.ts` 进度条；`StartMenu` 变为多视图
+  （主菜单 / 角色 / 玩法说明 / 制作人员）并支持键盘导航；`SettingsMenu` + `core/Settings`
+  管理音量与画质并持久化；结算页评级 / NEW BEST；HUD 赛道进度条
+- 音频体系（Phase 2）：`AudioSystem` 三级总线 `sfx / music -> master`；
+  `src/systems/Music.ts` 程序化 BGM（menu / game 两套，`setMode` 交叉淡入）；
+  UI 音效经 `src/ui/UiSound.ts` 钩子触发；`M` 键静音
+- 记录与成就（Phase 3）：`core/Stats.ts`（生涯统计，localStorage）、
+  `core/Achievements.ts`（成就条件 + 解锁持久化）；`StartMenu` 的「记录」页读取二者渲染，
+  结算页标注破纪录项与新解锁成就；首次进入自动打开玩法说明
+- 适配与无障碍（Phase 4）：`styles/game.css` 媒体查询；`core/Platform.ts` 检测
+  触屏 / `prefers-reduced-motion`；`Game` 在减弱动效时跳过镜头抖动；首次滑行由
+  `src/ui/Tutorial.ts` 分步引导（条件由 `Game.updateTutorial` 判定）
+- 性能与画质（Phase 5）：`Game.measurePerformance` 统计 FPS；`quality` 为 `auto` 时
+  自动在高低档间切换（冷确 3s）；`Renderer.setPixelRatioCap` 与
+  `SnowEffects.setDensity` 承载画质差异；失焦自动暂停
+- 模式与体验（Phase 6）：`Settings.mode`（标准 / 计时挑战 / 一命通关）由 `Game.finishRun`
+  统一收尾；`core/Daily.ts` 按日期轮换每日目标；拍照模式（`GameState.Photo` +
+  `FollowCamera.photo` + `PhotoMode` UI + `Renderer.capture`）；`AudioSystem` 新增 carve 音层
+- 视角（Phase 7）：`Settings.view`（third / first）。第一人称由
+  `FollowCamera.updateFirstPerson` 实现（头部机位、水平地平线、速度 FOV、地形净空），
+  `PlayerVisual.setVisible(false)` 隐藏角色；Crash / 菜单 / 拍照自动回退第三人称
 - 远山 `MountainBackdrop.update()` 每帧跟随玩家水平坐标，使群山始终保持在远处
 - 模型在 `main.ts` 中先加载完成再构建 `Game`，保证 `CourseGenerator` 可同步实例化
 - 加载失败时 `ModelLibrary` 会退回程序化几何体，游戏仍可运行

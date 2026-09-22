@@ -23,7 +23,24 @@ import { TrickHUD } from '../ui/TrickHUD';
 import { StartMenu } from '../ui/StartMenu';
 import { PauseMenu } from '../ui/PauseMenu';
 import { ResultScreen } from '../ui/ResultScreen';
+import { SettingsMenu } from '../ui/SettingsMenu';
+import { Tutorial } from '../ui/Tutorial';
+import { PhotoMode } from '../ui/PhotoMode';
 import { t } from '../ui/I18n';
+import {
+  getSettings,
+  onSettingsChange,
+  updateSettings,
+  type GameSettings,
+  type GameMode,
+  type QualityLevel,
+  type ViewMode,
+} from './Settings';
+import { evaluateDaily } from './Daily';
+import { prefersReducedMotion } from './Platform';
+import { setUiSoundHandler } from '../ui/UiSound';
+import { formatTime, getStats, recordRun } from './Stats';
+import { evaluateAchievements } from './Achievements';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { CheckpointSystem } from '../systems/CheckpointSystem';
 import { ScoreSystem } from '../systems/ScoreSystem';
@@ -38,6 +55,8 @@ import { TrickSystem, type LandingResult } from '../systems/TrickSystem';
 export class Game {
   private static readonly BEST_SCORE_KEY = 'SnowRush.best';
   private static readonly CHARACTER_KEY = 'SnowRush.character';
+  private static readonly SEEN_INTRO_KEY = 'SnowRush.seenIntro';
+  private static readonly TUTORIAL_KEY = 'SnowRush.tutorialDone';
 
   private readonly renderer: Renderer;
   private readonly lighting: Lighting;
@@ -57,6 +76,9 @@ export class Game {
   private readonly startMenu: StartMenu;
   private readonly pauseMenu: PauseMenu;
   private readonly resultScreen: ResultScreen;
+  private readonly settingsMenu: SettingsMenu;
+  private readonly tutorial: Tutorial;
+  private readonly photoMode: PhotoMode;
   private readonly input: InputManager;
   private readonly loop: GameLoop;
   private readonly collisionSystem: CollisionSystem;
@@ -77,6 +99,25 @@ export class Game {
   private maxSpeedKmh = 0;
   private wasGrounded = true;
   private previewYaw = 0;
+  private lastCountdownLabel = '';
+  private crashesThisRun = 0;
+  private tutorialPending = false;
+  private tutorialStep = 0;
+  private tutorialStartHeading = 0;
+  private tutorialGoTimer = 0;
+  private runMaxAirTime = 0;
+  private qualityLevel: QualityLevel = 'auto';
+  private autoQuality: 'high' | 'low' = 'high';
+  private qualityCooldown = 0;
+  private fpsFrames = 0;
+  private fpsTime = 0;
+  private fps = 60;
+  private mode: GameMode = 'standard';
+  private viewMode: ViewMode = 'third';
+  private oneLife = false;
+  private timeRemaining = 0;
+  private photoYaw = 0;
+  private photoDist = 6;
 
   constructor(container: HTMLElement, models: ModelLibrary) {
     this.renderer = new Renderer(container);
@@ -112,6 +153,23 @@ export class Game {
     });
     this.pauseMenu = new PauseMenu(container);
     this.resultScreen = new ResultScreen(container);
+    this.settingsMenu = new SettingsMenu(container);
+    this.tutorial = new Tutorial(container);
+    this.tutorial.setOnSkip(() => this.finishTutorial());
+    this.photoMode = new PhotoMode(container);
+    this.photoMode.hide();
+    this.setupPhotoInput();
+    this.applySettings(getSettings());
+    onSettingsChange((settings) => this.applySettings(settings));
+    setUiSoundHandler((kind) => {
+      if (kind === 'hover') this.audio.playUiHover();
+      else if (kind === 'back') this.audio.playUiBack();
+      else this.audio.playUiClick();
+    });
+    window.addEventListener('blur', this.handleBlur);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.handleBlur();
+    });
 
     this.checkpointSystem = new CheckpointSystem(this.player, this.startSpawn);
     this.trickSystem = new TrickSystem(this.player, { onLanded: this.handleLanded });
@@ -132,6 +190,11 @@ export class Game {
   }
 
   init(): void {
+    this.startMenu.setOnOpenSettings(() => this.openSettings());
+    this.showStartMenu();
+  }
+
+  private showStartMenu(): void {
     this.state = GameState.Menu;
     this.startMenu.show(
       this.loadBestScore(),
@@ -139,6 +202,8 @@ export class Game {
       this.selectedCharacterId,
       () => {
         this.audio.unlock();
+        this.audio.playUiClick();
+        this.markIntroSeen();
         this.startMenu.hide();
         this.beginRun();
       },
@@ -146,8 +211,210 @@ export class Game {
         this.selectedCharacterId = id;
         this.saveCharacterId(id);
         this.applyCharacter(id);
+        this.audio.playUiClick();
       },
     );
+    // First-time players land on the how-to page.
+    if (!this.isIntroSeen()) this.startMenu.openView('howto');
+  }
+
+  private isIntroSeen(): boolean {
+    try {
+      return window.localStorage.getItem(Game.SEEN_INTRO_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  private markIntroSeen(): void {
+    try {
+      window.localStorage.setItem(Game.SEEN_INTRO_KEY, '1');
+    } catch {
+      // ignore
+    }
+  }
+
+  private openSettings(): void {
+    this.audio.unlock();
+    this.audio.playUiClick();
+    this.settingsMenu.show(() => this.settingsMenu.hide());
+  }
+
+  private applySettings(settings: GameSettings): void {
+    this.audio.setMasterVolume(settings.volume);
+    this.audio.setMusicVolume(settings.musicVolume);
+    this.audio.setSfxVolume(settings.sfxVolume);
+    this.audio.setMuted(settings.muted);
+    this.lighting.setShadows(settings.shadows);
+    this.viewMode = settings.view;
+    this.qualityLevel = settings.quality;
+    this.applyQuality();
+  }
+
+  /** Applies the effective quality level (auto resolves to high/low). */
+  private applyQuality(): void {
+    const level = this.qualityLevel === 'auto' ? this.autoQuality : this.qualityLevel;
+    this.renderer.setPixelRatioCap(level === 'low' ? 1 : CONFIG.render.maxPixelRatio);
+    this.snowEffects.setDensity(level === 'low' ? 0.5 : 1);
+  }
+
+  /** Auto-pauses when the tab / window loses focus. */
+  private readonly handleBlur = (): void => {
+    if (this.state === GameState.Playing) this.togglePause();
+  };
+
+  /** First-person is disabled in menus, photo mode and during a crash. */
+  private isFirstPerson(): boolean {
+    return (
+      this.viewMode === 'first' &&
+      this.state !== GameState.Crashed &&
+      this.state !== GameState.Menu &&
+      this.state !== GameState.Photo
+    );
+  }
+
+  private setupPhotoInput(): void {
+    const canvas = this.renderer.renderer.domElement;
+    let dragging = false;
+    let lastX = 0;
+    canvas.addEventListener('pointerdown', (event) => {
+      if (this.state !== GameState.Photo) return;
+      dragging = true;
+      lastX = event.clientX;
+    });
+    window.addEventListener('pointermove', (event) => {
+      if (!dragging || this.state !== GameState.Photo) return;
+      this.photoYaw -= (event.clientX - lastX) * CONFIG.photo.orbitSpeed;
+      lastX = event.clientX;
+    });
+    window.addEventListener('pointerup', () => {
+      dragging = false;
+    });
+    canvas.addEventListener(
+      'wheel',
+      (event) => {
+        if (this.state !== GameState.Photo) return;
+        event.preventDefault();
+        const p = CONFIG.photo;
+        this.photoDist = Math.min(
+          Math.max(this.photoDist + event.deltaY * p.zoomSpeed * 40, p.minDistance),
+          p.maxDistance,
+        );
+      },
+      { passive: false },
+    );
+  }
+
+  private enterPhoto(): void {
+    this.state = GameState.Photo;
+    this.photoYaw = 0;
+    this.photoDist = CONFIG.photo.maxDistance * 0.6;
+    this.hud.setVisible(false);
+    this.hud.setMode(null);
+    this.trickHud.clear();
+    this.tutorial.stop();
+    this.audio.setMusicMode('menu');
+    this.photoMode.show(
+      () => this.savePhoto(),
+      () => this.exitPhoto(),
+    );
+  }
+
+  private exitPhoto(): void {
+    this.photoMode.hide();
+    this.state = GameState.Playing;
+    this.hud.setVisible(true);
+  }
+
+  private savePhoto(): void {
+    const link = document.createElement('a');
+    link.download = `snowrush-${Date.now()}.png`;
+    link.href = this.renderer.capture();
+    link.click();
+    this.photoMode.flashSaved();
+  }
+
+  /** Returns to the title screen from pause / results. */
+  private toMenu(): void {
+    this.finishTutorial();
+    this.pauseMenu.hide();
+    this.settingsMenu.hide();
+    this.resultScreen.hide();
+    this.timer.stop();
+    this.player.respawn();
+    this.followCamera.snap();
+    this.previewYaw = 0;
+    this.hud.clearMessage();
+    this.hud.setProgress(0);
+    this.showStartMenu();
+  }
+
+  private computeRank(score: number): string {
+    const thresholds = CONFIG.result.rankThresholds;
+    const labels = ['S', 'A', 'B', 'C', 'D'];
+    for (let i = 0; i < thresholds.length; i++) {
+      if (score >= thresholds[i]) return labels[i];
+    }
+    return labels[labels.length - 1];
+  }
+
+  private shouldShowTutorial(): boolean {
+    if (!getSettings().tutorial) return false;
+    try {
+      return window.localStorage.getItem(Game.TUTORIAL_KEY) !== '1';
+    } catch {
+      return true;
+    }
+  }
+
+  private startTutorial(): void {
+    this.tutorialStep = 0;
+    this.tutorialStartHeading = this.player.heading;
+    this.tutorial.start('tutorial.move');
+  }
+
+  private updateTutorial(dt: number): void {
+    switch (this.tutorialStep) {
+      case 0:
+        if (this.player.getSpeed() > 8) {
+          this.tutorialStep = 1;
+          this.tutorial.setText('tutorial.turn');
+        }
+        break;
+      case 1:
+        if (Math.abs(this.player.heading - this.tutorialStartHeading) > 0.5) {
+          this.tutorialStep = 2;
+          this.tutorial.setText('tutorial.jump');
+        }
+        break;
+      case 2:
+        if (!this.player.grounded) {
+          this.tutorialStep = 3;
+          this.tutorial.setText('tutorial.gate');
+        }
+        break;
+      case 3:
+        if (this.scoreSystem.getGateCount() > 0) {
+          this.tutorialStep = 4;
+          this.tutorial.setText('tutorial.go');
+          this.tutorialGoTimer = 1.8;
+        }
+        break;
+      case 4:
+        this.tutorialGoTimer -= dt;
+        if (this.tutorialGoTimer <= 0) this.finishTutorial();
+        break;
+    }
+  }
+
+  private finishTutorial(): void {
+    if (!this.tutorial.isActive) return;
+    this.tutorial.stop();
+    try {
+      window.localStorage.setItem(Game.TUTORIAL_KEY, '1');
+    } catch {
+      // ignore
+    }
   }
 
   private applyCharacter(id: string): void {
@@ -235,6 +502,17 @@ export class Game {
     this.crashTimer = 0;
     this.crashElapsed = 0;
     this.previewYaw = 0;
+    this.lastCountdownLabel = '';
+    this.crashesThisRun = 0;
+    this.runMaxAirTime = 0;
+    this.mode = getSettings().mode;
+    this.oneLife = this.mode === 'oneline';
+    this.timeRemaining = this.mode === 'time' ? CONFIG.modes.timeAttackSeconds : 0;
+    this.photoMode.hide();
+    this.tutorial.stop();
+    this.tutorialPending = this.shouldShowTutorial();
+    this.settingsMenu.hide();
+    this.hud.setProgress(0);
     this.checkpointSystem.reset(this.startSpawn);
     this.player.setSpawn(this.startSpawn);
     this.player.respawn();
@@ -251,7 +529,13 @@ export class Game {
 
   private readonly handleCrash = (): void => {
     if (this.state !== GameState.Playing) return;
+    if (this.oneLife) {
+      this.crashesThisRun += 1;
+      this.finishRun('crash');
+      return;
+    }
     this.state = GameState.Crashed;
+    this.crashesThisRun += 1;
     this.crashTimer = CONFIG.crash.respawnDelay;
     this.crashElapsed = 0;
     this.trickSystem.cancel();
@@ -291,23 +575,57 @@ export class Game {
   };
 
   private readonly handleFinish = (): void => {
+    this.finishRun('finish');
+  };
+
+  /** Ends the run (reached the finish, ran out of time or crashed in one-life). */
+  private finishRun(reason: 'finish' | 'timeup' | 'crash'): void {
     if (this.state !== GameState.Playing) return;
     this.state = GameState.Finished;
     this.timer.stop();
     this.hud.clearMessage();
-    this.saveBestScore(this.scoreSystem.getScore());
+    this.hud.setMode(null);
+    this.finishTutorial();
+    this.photoMode.hide();
+
+    const score = this.scoreSystem.getScore();
+    const completed = reason === 'finish';
+    const previousBest = this.loadBestScore();
+    const newBest = completed && score > 0 && score > previousBest;
+    if (completed) this.saveBestScore(score);
+
+    const run = {
+      score,
+      timeMs: Math.round(this.timer.getElapsed() * 1000),
+      maxSpeedKmh: this.maxSpeedKmh,
+      maxCombo: this.scoreSystem.getMaxCombo(),
+      maxAirTime: this.runMaxAirTime,
+      tricks: this.scoreSystem.getTrickCount(),
+      gates: this.scoreSystem.getGateCount(),
+      crashes: this.crashesThisRun,
+    };
+    const records = completed ? recordRun(run) : undefined;
+    const newAchievements = completed ? evaluateAchievements(run, getStats()) : [];
+    const dailyCompleted = completed ? evaluateDaily(run) : false;
+
     this.resultScreen.show(
       {
         time: this.timer.format(),
-        score: this.scoreSystem.getScore(),
+        score,
         maxSpeedKmh: this.maxSpeedKmh,
         gates: this.scoreSystem.getGateCount(),
         tricks: this.scoreSystem.getTrickCount(),
         maxCombo: this.scoreSystem.getMaxCombo(),
+        rank: this.computeRank(score),
+        newBest,
+        records,
+        newAchievements,
+        dailyCompleted,
       },
       this.beginRun,
+      () => this.toMenu(),
     );
-  };
+  }
 
   private respawn(): void {
     this.checkpointSystem.respawnPlayer();
@@ -327,15 +645,25 @@ export class Game {
     } else {
       this.state = GameState.Paused;
       this.timer.stop();
-      this.pauseMenu.show(
-        () => this.togglePause(),
-        () => this.beginRun(),
-      );
+      this.pauseMenu.show({
+        onResume: () => this.togglePause(),
+        onRestart: () => this.beginRun(),
+        onSettings: () => this.openSettings(),
+        onQuit: () => this.toMenu(),
+      });
     }
   }
 
   private readonly fixedUpdate = (dt: number): void => {
     if (this.state === GameState.Playing) {
+      if (this.mode === 'time') {
+        this.timeRemaining -= dt;
+        if (this.timeRemaining <= 0) {
+          this.timeRemaining = 0;
+          this.finishRun('timeup');
+          return;
+        }
+      }
       this.playerController.update(dt);
       this.physics.step();
       this.collisionSystem.update();
@@ -359,6 +687,10 @@ export class Game {
         this.state = GameState.Playing;
         this.timer.start();
         this.hud.clearMessage();
+        if (this.tutorialPending) {
+          this.tutorialPending = false;
+          this.startTutorial();
+        }
       }
     }
   };
@@ -380,15 +712,47 @@ export class Game {
       this.respawn();
     }
 
+    if (this.input.wasPressed('mute')) {
+      const muted = !getSettings().muted;
+      updateSettings({ muted });
+      this.hud.flashToast(t(muted ? 'message.muted' : 'message.unmuted'));
+    }
+
+    if (this.input.wasPressed('photo')) {
+      if (this.state === GameState.Playing) this.enterPhoto();
+      else if (this.state === GameState.Photo) this.exitPhoto();
+    }
+
+    if (
+      this.input.wasPressed('view') &&
+      (this.state === GameState.Playing || this.state === GameState.Countdown)
+    ) {
+      const view: ViewMode = getSettings().view === 'third' ? 'first' : 'third';
+      updateSettings({ view });
+      this.hud.flashToast(t(view === 'first' ? 'message.firstPerson' : 'message.thirdPerson'));
+    }
+    if (this.state === GameState.Photo && this.input.wasPressed('pause')) {
+      this.exitPhoto();
+    }
+
     if (this.state === GameState.Playing) {
       this.checkOutOfBounds(position);
       this.maxSpeedKmh = Math.max(this.maxSpeedKmh, this.player.getSpeedKmh());
+      const span = this.course.startZ - this.course.finish.placement.z;
+      this.hud.setProgress(span > 0 ? (this.course.startZ - position.z) / span : 0);
+      if (this.tutorial.isActive) this.updateTutorial(dt);
+      this.runMaxAirTime = Math.max(this.runMaxAirTime, this.player.airTime);
     }
 
     if (this.state === GameState.Countdown) {
-      this.hud.setMessage(
-        this.countdownRemaining > 0 ? String(Math.ceil(this.countdownRemaining)) : t('message.go'),
-      );
+      const label =
+        this.countdownRemaining > 0 ? String(Math.ceil(this.countdownRemaining)) : t('message.go');
+      if (label !== this.lastCountdownLabel) {
+        this.lastCountdownLabel = label;
+        this.hud.setMessage(label);
+        if (label === t('message.go')) this.audio.playGo();
+        else this.audio.playCountdown();
+      }
     }
 
     const tilt =
@@ -427,13 +791,28 @@ export class Game {
     const grounded = this.player.grounded;
     if (!grounded && this.wasGrounded) this.audio.playJump();
     if (landing.landed) {
-      this.followCamera.addShake(landing.strength * CONFIG.camera.landingShakeScale);
+      if (!prefersReducedMotion()) {
+        this.followCamera.addShake(landing.strength * CONFIG.camera.landingShakeScale);
+      }
       this.audio.playLanding(landing.strength);
+      this.playerVisual.landPulse(landing.strength);
     }
     this.wasGrounded = grounded;
-    this.audio.update(this.player.getSpeed(), grounded);
+    this.audio.update(this.player.getSpeed(), grounded, this.player.lean);
+    const firstPerson = this.isFirstPerson();
+    this.playerVisual.setVisible(!firstPerson);
     if (this.state === GameState.Menu) {
       this.followCamera.showcase(position, this.player.heading);
+    } else if (this.state === GameState.Photo) {
+      this.followCamera.photo(position, this.player.heading, this.photoYaw, this.photoDist);
+    } else if (firstPerson) {
+      this.followCamera.updateFirstPerson(
+        position,
+        this.player.heading,
+        this.player.getSpeed(),
+        this.player.grounded,
+        dt,
+      );
     } else {
       this.followCamera.update(
         position,
@@ -447,13 +826,51 @@ export class Game {
     const groundY = terrainHeight(position.x, position.z);
     this.mountainBackdrop.update(position.x, position.z);
     this.clouds.update(position.x, groundY, position.z, dt);
-    this.hud.setVisible(this.state !== GameState.Menu);
+    this.hud.setVisible(
+      this.state !== GameState.Menu && this.state !== GameState.Photo,
+    );
     this.hud.update(this.player);
     this.hud.setScore(this.scoreSystem.getScore());
-    this.hud.setTime(this.timer.format());
+    this.hud.setTime(this.mode === 'time' ? formatTime(this.timeRemaining) : this.timer.format());
+    this.hud.setMode(
+      this.state === GameState.Playing && this.mode === 'time'
+        ? `${t('mode.time')} ${formatTime(this.timeRemaining)}`
+        : this.state === GameState.Playing && this.mode === 'oneline'
+          ? t('mode.oneline')
+          : null,
+    );
+    this.audio.setMusicMode(this.state === GameState.Menu ? 'menu' : 'game');
+    this.measurePerformance(dt);
     this.renderer.render();
     this.input.update();
   };
+
+  /** Tracks FPS, adapts quality in auto mode and drives the FPS readout. */
+  private measurePerformance(dt: number): void {
+    this.fpsFrames += 1;
+    this.fpsTime += dt;
+    if (this.qualityCooldown > 0) this.qualityCooldown -= dt;
+
+    if (this.fpsTime >= 0.5) {
+      this.fps = this.fpsFrames / this.fpsTime;
+      this.fpsFrames = 0;
+      this.fpsTime = 0;
+
+      if (this.qualityLevel === 'auto' && this.qualityCooldown <= 0) {
+        if (this.fps < 45 && this.autoQuality === 'high') {
+          this.autoQuality = 'low';
+          this.qualityCooldown = 3;
+          this.applyQuality();
+        } else if (this.fps > 58 && this.autoQuality === 'low') {
+          this.autoQuality = 'high';
+          this.qualityCooldown = 3;
+          this.applyQuality();
+        }
+      }
+    }
+
+    this.hud.setFps(this.fps, getSettings().showFps);
+  }
 
   /** Safety net so a run cannot be lost by sliding off the world. */
   private checkOutOfBounds(position: THREE.Vector3): void {

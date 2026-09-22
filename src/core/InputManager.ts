@@ -6,7 +6,10 @@ export type InputAction =
   | 'jump'
   | 'boost'
   | 'reset'
-  | 'pause';
+  | 'pause'
+  | 'mute'
+  | 'photo'
+  | 'view';
 
 /** Minimal surface consumers depend on, so controllers stay testable. */
 export interface InputState {
@@ -29,6 +32,9 @@ const KEY_BINDINGS: Record<string, InputAction> = {
   KeyR: 'reset',
   KeyP: 'pause',
   Escape: 'pause',
+  KeyM: 'mute',
+  KeyK: 'photo',
+  KeyV: 'view',
 };
 
 const PREVENT_DEFAULT = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space']);

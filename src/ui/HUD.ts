@@ -15,7 +15,12 @@ export class HUD {
   private readonly scoreLabel: HTMLSpanElement;
   private readonly timeLabel: HTMLSpanElement;
   private readonly pauseButton: HTMLButtonElement;
+  private readonly progressFill: HTMLDivElement;
+  private readonly toastEl: HTMLDivElement;
+  private readonly fpsEl: HTMLDivElement;
+  private readonly modeEl: HTMLDivElement;
   private hintTimer = 0;
+  private toastTimer = 0;
 
   constructor(container: HTMLElement) {
     this.root = document.createElement('div');
@@ -36,6 +41,10 @@ export class HUD {
         <span class="hud-speed-value">0</span>
         <span class="hud-speed-unit">KM/H</span>
       </div>
+      <div class="hud-progress"><div class="hud-progress-fill"></div></div>
+      <div class="hud-toast"></div>
+      <div class="hud-fps" hidden></div>
+      <div class="hud-mode" hidden></div>
     `;
     container.appendChild(this.root);
 
@@ -47,6 +56,10 @@ export class HUD {
     this.scoreLabel = this.root.querySelector('[data-label="score"]') as HTMLSpanElement;
     this.timeLabel = this.root.querySelector('[data-label="time"]') as HTMLSpanElement;
     this.pauseButton = this.root.querySelector('.hud-pause') as HTMLButtonElement;
+    this.progressFill = this.root.querySelector('.hud-progress-fill') as HTMLDivElement;
+    this.toastEl = this.root.querySelector('.hud-toast') as HTMLDivElement;
+    this.fpsEl = this.root.querySelector('.hud-fps') as HTMLDivElement;
+    this.modeEl = this.root.querySelector('.hud-mode') as HTMLDivElement;
 
     this.render();
     onLanguageChange(() => this.render());
@@ -93,9 +106,40 @@ export class HUD {
   setMessage(text: string): void {
     this.message.textContent = text;
     this.message.classList.add('is-visible');
+    // Restart the pop animation so each countdown step / message pulses.
+    this.message.classList.remove('is-pop');
+    void this.message.offsetWidth;
+    this.message.classList.add('is-pop');
   }
 
   clearMessage(): void {
     this.message.classList.remove('is-visible');
+    this.message.classList.remove('is-pop');
+  }
+
+  /** Course progress 0..1 (start -> finish) shown as a top bar. */
+  setProgress(ratio: number): void {
+    const clamped = Math.min(Math.max(ratio, 0), 1);
+    this.progressFill.style.width = `${clamped * 100}%`;
+  }
+
+  /** Mode badge (e.g. time-attack countdown); pass null to hide. */
+  setMode(text: string | null): void {
+    this.modeEl.hidden = !text;
+    if (text) this.modeEl.textContent = text;
+  }
+
+  /** FPS readout; hidden unless the settings toggle is on. */
+  setFps(value: number, show: boolean): void {
+    this.fpsEl.hidden = !show;
+    if (show) this.fpsEl.textContent = `${Math.round(value)} FPS`;
+  }
+
+  /** Small transient notice (e.g. mute toggle) that fades out on its own. */
+  flashToast(text: string): void {
+    this.toastEl.textContent = text;
+    this.toastEl.classList.add('is-visible');
+    window.clearTimeout(this.toastTimer);
+    this.toastTimer = window.setTimeout(() => this.toastEl.classList.remove('is-visible'), 1100);
   }
 }

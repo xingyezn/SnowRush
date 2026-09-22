@@ -22,6 +22,8 @@ export class PlayerVisual {
   private currentAnimation: RiderAnimation | null = null;
   /** Extra yaw used only by the menu preview to spin the rider in place. */
   private previewYaw = 0;
+  /** Landing squash amount, decays over time. */
+  private squash = 0;
 
   constructor() {
     const p = CONFIG.player;
@@ -117,11 +119,29 @@ export class PlayerVisual {
 
   update(dt: number): void {
     this.mixer?.update(dt);
+    if (this.squash > 0.001) {
+      this.squash *= Math.exp(-9 * dt);
+      const s = this.squash;
+      this.tiltGroup.scale.set(1 + s * 0.1, 1 - s * 0.16, 1 + s * 0.1);
+    } else if (this.squash !== 0) {
+      this.squash = 0;
+      this.tiltGroup.scale.set(1, 1, 1);
+    }
+  }
+
+  /** Small squash-and-stretch pulse on landing, scaled by impact strength. */
+  landPulse(strength: number): void {
+    this.squash = Math.min(Math.max(strength, 0), 1) * 1.1;
   }
 
   /** Menu-only yaw offset so the rider can rotate while the world stays fixed. */
   setPreviewYaw(yaw: number): void {
     this.previewYaw = yaw;
+  }
+
+  /** Hides the whole rider (used by the first-person camera). */
+  setVisible(visible: boolean): void {
+    this.group.visible = visible;
   }
 
   sync(position: THREE.Vector3, heading: number, tilt = 0, pitch = 0, roll = 0, lean = 0): void {

@@ -201,6 +201,11 @@ export const CONFIG = {
     gateScore: 50,
   },
 
+  result: {
+    /** Score thresholds for S / A / B / C; below the last one is D. */
+    rankThresholds: [8000, 5000, 2500, 1000],
+  },
+
   trick: {
     /** Air time below this never counts as a trick. */
     minAirTime: 0.25,
@@ -217,6 +222,19 @@ export const CONFIG = {
 
   timer: {
     countdownSeconds: 3,
+  },
+
+  modes: {
+    /** Time attack: seconds allowed to reach the finish. */
+    timeAttackSeconds: 120,
+  },
+
+  photo: {
+    minDistance: 2.5,
+    maxDistance: 14,
+    height: 1.6,
+    orbitSpeed: 0.006,
+    zoomSpeed: 0.0016,
   },
 
   player: {
@@ -267,18 +285,19 @@ export const CONFIG = {
   },
 
   camera: {
-    baseFov: 60,
-    maxFov: 78,
-    minDistance: 5,
-    maxDistance: 8,
-    baseHeight: 2.2,
-    maxHeight: 3.4,
+    // Third-person chase: closer + tighter FOV so the rider reads larger.
+    baseFov: 55,
+    maxFov: 68,
+    minDistance: 3.6,
+    maxDistance: 5.4,
+    baseHeight: 1.55,
+    maxHeight: 2.4,
     positionLerp: 4,
     lookLerp: 8,
     fovLerp: 4,
     speedForMax: 36,
     lookAhead: 3.5,
-    lookHeight: 1,
+    lookHeight: 0.6,
     minGroundClearance: 1.2,
     /** Camera occlusion handling: pull in ahead of blockers. */
     occlusionPadding: 0.4,
@@ -288,6 +307,16 @@ export const CONFIG = {
     shakeDecay: 6,
     landingShakeScale: 0.16,
     crashShake: 0.5,
+    /** First-person camera: eye at the rider's head, level horizon. */
+    firstPerson: {
+      height: 0.5,
+      forwardOffset: 0.12,
+      fovBase: 68,
+      fovMax: 84,
+      /** Landing / carve vertical bob scale. */
+      bobScale: 0.18,
+    },
+
     /** Menu character-preview framing (fixed camera, the rider spins in place). */
     showcaseDistance: 4,
     showcaseHeight: 1,
@@ -309,10 +338,15 @@ export const CONFIG = {
 
   audio: {
     masterVolume: 0.5,
+    musicVolume: 0.5,
+    sfxVolume: 0.7,
     windMaxGain: 0.35,
     slideMaxGain: 0.3,
+    carveMaxGain: 0.22,
     minSpeed: 6,
     maxSpeed: 36,
+    /** Music bus fade time when crossfading menu <-> gameplay. */
+    musicFade: 1.4,
   },
 
   effects: {

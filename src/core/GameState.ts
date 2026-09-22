@@ -8,6 +8,7 @@ export enum GameState {
   Countdown = 'COUNTDOWN',
   Playing = 'PLAYING',
   Paused = 'PAUSED',
+  Photo = 'PHOTO',
   Crashed = 'CRASHED',
   Respawn = 'RESPAWN',
   Finished = 'FINISHED',

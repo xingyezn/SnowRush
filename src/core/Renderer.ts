@@ -9,6 +9,7 @@ export class Renderer {
   readonly scene = new THREE.Scene();
   readonly camera: THREE.PerspectiveCamera;
   readonly renderer: THREE.WebGLRenderer;
+  private pixelRatioCap = CONFIG.render.maxPixelRatio;
 
   constructor(container: HTMLElement) {
     const { baseFov } = CONFIG.camera;
@@ -21,7 +22,7 @@ export class Renderer {
     );
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, CONFIG.render.maxPixelRatio));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.pixelRatioCap));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -38,6 +39,19 @@ export class Renderer {
     this.renderer.render(this.scene, this.camera);
   }
 
+  /** Renders and returns the current frame as a PNG data URL (photo mode). */
+  capture(): string {
+    this.render();
+    return this.renderer.domElement.toDataURL('image/png');
+  }
+
+  /** Caps the device pixel ratio (quality setting / auto adaptation). */
+  setPixelRatioCap(cap: number): void {
+    this.pixelRatioCap = cap;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, cap));
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
   dispose(): void {
     window.removeEventListener('resize', this.handleResize);
     this.renderer.dispose();
@@ -48,7 +62,7 @@ export class Renderer {
     const height = window.innerHeight;
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, CONFIG.render.maxPixelRatio));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.pixelRatioCap));
     this.renderer.setSize(width, height);
   };
 }

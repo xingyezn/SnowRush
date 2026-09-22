@@ -45,4 +45,9 @@ export class Lighting {
     this.sun.target.position.copy(target);
     this.sun.target.updateMatrixWorld();
   }
+
+  /** Quality toggle: disables the sun shadow pass entirely. */
+  setShadows(enabled: boolean): void {
+    this.sun.castShadow = enabled;
+  }
 }

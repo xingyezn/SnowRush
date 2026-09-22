@@ -150,6 +150,73 @@ export class FollowCamera {
     this.camera.setViewOffset(aspect, 1, aspect * c.showcaseOffset, 0, aspect, 1);
   }
 
+  /** Free orbit camera for photo mode (drag yaw + wheel zoom). */
+  photo(playerPosition: THREE.Vector3, heading: number, orbit: number, distance: number): void {
+    if (this.camera.view) this.camera.clearViewOffset();
+    const theta = heading + Math.PI + orbit;
+    const camX = playerPosition.x + Math.sin(theta) * distance;
+    const camZ = playerPosition.z + Math.cos(theta) * distance;
+    const camY = playerPosition.y + CONFIG.photo.height;
+    this.camera.position.set(camX, Math.max(camY, terrainHeight(camX, camZ) + 0.5), camZ);
+    this.camera.lookAt(playerPosition.x, playerPosition.y + 0.4, playerPosition.z);
+    if (this.camera.fov !== 50) {
+      this.camera.fov = 50;
+      this.camera.updateProjectionMatrix();
+    }
+  }
+
+  /**
+   * First-person view: eye at the rider's head, level horizon (no flip roll).
+   * Speed raises the FOV; landing bob adds a small vertical dip.
+   */
+  updateFirstPerson(
+    playerPosition: THREE.Vector3,
+    heading: number,
+    speed: number,
+    grounded: boolean,
+    dt: number,
+  ): void {
+    if (this.camera.view) this.camera.clearViewOffset();
+    const c = CONFIG.camera;
+    const fp = c.firstPerson;
+    const forwardX = -Math.sin(heading);
+    const forwardZ = -Math.cos(heading);
+
+    if (!this.laggedInitialized) {
+      this.laggedY = playerPosition.y;
+      this.laggedInitialized = true;
+    }
+    const yLerp = grounded ? c.positionLerp : c.jumpLagRate;
+    this.laggedY += (playerPosition.y - this.laggedY) * (1 - Math.exp(-yLerp * dt));
+
+    const camX = playerPosition.x + forwardX * fp.forwardOffset;
+    const camZ = playerPosition.z + forwardZ * fp.forwardOffset;
+    let camY = this.laggedY + fp.height;
+    camY = Math.max(camY, terrainHeight(camX, camZ) + 0.35);
+
+    this.camera.position.set(camX, camY, camZ);
+    this.camera.up.set(0, 1, 0);
+    this.camera.lookAt(
+      camX + forwardX * 12,
+      camY + c.lookHeight * 0.4 - 0.1,
+      camZ + forwardZ * 12,
+    );
+
+    const t = THREE.MathUtils.clamp(speed / c.speedForMax, 0, 1);
+    const targetFov = THREE.MathUtils.lerp(fp.fovBase, fp.fovMax, t);
+    this.camera.fov += (targetFov - this.camera.fov) * (1 - Math.exp(-c.fovLerp * dt));
+    this.camera.updateProjectionMatrix();
+
+    if (this.shake > 0.001) {
+      this.camera.position.x += (Math.random() - 0.5) * this.shake;
+      this.camera.position.y += (Math.random() - 0.5) * this.shake;
+      this.camera.position.z += (Math.random() - 0.5) * this.shake;
+      this.shake *= Math.exp(-c.shakeDecay * dt);
+    } else {
+      this.shake = 0;
+    }
+  }
+
   /** Pull the camera in when a tree / rock cylinder blocks the view. */
   private applyOcclusion(playerPosition: THREE.Vector3): void {
     const c = CONFIG.camera;
