@@ -49,7 +49,7 @@ const MESSAGES: Record<Language, Dictionary> = {
     'hud.hint': 'W 加速 · A / D 转向 · S 刹车 · R 重置 · V 视角 · K 拍照',
 
     'message.crashed': '摔车了',
-    'message.checkpoint': '检查点',
+    'message.checkpoint': '存档点',
     'message.go': '出发！',
     'message.muted': '已静音',
     'message.unmuted': '声音已开启',
@@ -65,7 +65,7 @@ const MESSAGES: Record<Language, Dictionary> = {
 
     'howto.title': '玩法说明',
     'howto.goal':
-      '从山顶一路滑到终点：躲避树木与岩石，穿过旗门与检查点，利用跳台完成空中特技。落地越稳、连招越多，分数越高。',
+      '从山顶一路滑到终点：躲避树木与岩石，穿过旗门与存档点，利用跳台完成空中特技。落地越稳、连招越多，分数越高。',
 
     'credits.title': '制作人员',
     'credits.dev': '开发 / 设计',
@@ -155,7 +155,7 @@ const MESSAGES: Record<Language, Dictionary> = {
     'mode.standard': '标准',
     'mode.time': '计时挑战',
     'mode.oneline': '一命通关',
-    'mode.standard.desc': '标准规则：摔车后回到最近检查点。',
+    'mode.standard.desc': '标准规则：摔车后回到最近存档点。',
     'mode.time.desc': '在限定时间内冲过终点。',
     'mode.oneline.desc': '一次摔车即结束本局。',
 

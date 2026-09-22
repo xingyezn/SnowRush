@@ -82,17 +82,17 @@ body {
 
 .hud-message {
   position: absolute;
-  top: 22%;
+  top: 15%;
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 52px;
+  font-size: 44px;
   font-weight: 800;
   letter-spacing: 4px;
   color: #ffffff;
   text-shadow: 0 2px 12px rgba(13, 43, 69, 0.55);
   opacity: 0;
-  transition: opacity 0.18s ease-out;
+  transition: opacity 0.45s ease-out;
 }
 
 .hud-message.is-visible {

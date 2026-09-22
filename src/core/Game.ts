@@ -571,7 +571,7 @@ export class Game {
   private readonly handleCheckpoint = (index: number): void => {
     this.checkpointSystem.setCheckpoint(index, this.course.checkpoints.checkpoints[index]);
     this.audio.playCheckpoint();
-    this.hud.setMessage(t('message.checkpoint'));
+    this.hud.flashMessage(t('message.checkpoint'), 1200);
   };
 
   private readonly handleFinish = (): void => {
@@ -668,6 +668,9 @@ export class Game {
       this.physics.step();
       this.collisionSystem.update();
       this.trickSystem.update();
+      // Landing evaluation reads the air rotation above; reset it afterwards so
+      // the board does not stay visually pitched once the rider is grounded.
+      if (this.player.grounded) this.player.resetAirRotations();
       this.timer.update(dt);
       return;
     }

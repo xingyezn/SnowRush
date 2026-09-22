@@ -21,6 +21,7 @@ export class HUD {
   private readonly modeEl: HTMLDivElement;
   private hintTimer = 0;
   private toastTimer = 0;
+  private messageTimer = 0;
 
   constructor(container: HTMLElement) {
     this.root = document.createElement('div');
@@ -104,12 +105,19 @@ export class HUD {
   }
 
   setMessage(text: string): void {
+    window.clearTimeout(this.messageTimer);
     this.message.textContent = text;
     this.message.classList.add('is-visible');
     // Restart the pop animation so each countdown step / message pulses.
     this.message.classList.remove('is-pop');
     void this.message.offsetWidth;
     this.message.classList.add('is-pop');
+  }
+
+  /** Shows a message that fades out on its own (e.g. checkpoint reached). */
+  flashMessage(text: string, durationMs = 1200): void {
+    this.setMessage(text);
+    this.messageTimer = window.setTimeout(() => this.clearMessage(), durationMs);
   }
 
   clearMessage(): void {
