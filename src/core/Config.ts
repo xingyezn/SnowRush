@@ -275,7 +275,7 @@ export const CONFIG = {
     maxLean: 0.35,
     leanRate: 8,
     /** Animated rider model: target height and yaw correction (radians). */
-    riderHeight: 1.6,
+    riderHeight: 1.85,
     riderYaw: -Math.PI / 2,
     colliderFriction: 0.3,
     density: 1,
@@ -285,13 +285,14 @@ export const CONFIG = {
   },
 
   camera: {
-    // Third-person chase: closer + tighter FOV so the rider reads larger.
-    baseFov: 50,
-    maxFov: 62,
-    minDistance: 2.9,
-    maxDistance: 4.3,
-    baseHeight: 1.4,
-    maxHeight: 2.1,
+    // Third-person chase: close and nearly constant with speed, so the rider
+    // stays large even at top speed (only a small pull-back/FOV change).
+    baseFov: 46,
+    maxFov: 52,
+    minDistance: 2.5,
+    maxDistance: 3.0,
+    baseHeight: 1.25,
+    maxHeight: 1.7,
     positionLerp: 4,
     lookLerp: 8,
     fovLerp: 4,

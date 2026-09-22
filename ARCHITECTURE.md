@@ -837,6 +837,9 @@ tools/physics-check.ts          无头回归测试（npm run test:physics）
 - 视角（Phase 7）：`Settings.view`（third / first）。第一人称由
   `FollowCamera.updateFirstPerson` 实现（头部机位、水平地平线、速度 FOV、地形净空），
   `PlayerVisual.setVisible(false)` 隐藏角色；Crash / 菜单 / 拍照自动回退第三人称
+- 资源管线（Phase 8）：`tools/optimize_model.py`（Blender 减面 + 贴图 WebP 压缩）、
+  `tools/rig_model.py`（自动脊骨 + Idle 动画）；详见 `docs/ASSET_PIPELINE.md`。
+  角色高度/朝向集中在 `Config.player.riderHeight` / `riderYaw`
 - 远山 `MountainBackdrop.update()` 每帧跟随玩家水平坐标，使群山始终保持在远处
 - 模型在 `main.ts` 中先加载完成再构建 `Game`，保证 `CourseGenerator` 可同步实例化
 - 加载失败时 `ModelLibrary` 会退回程序化几何体，游戏仍可运行
