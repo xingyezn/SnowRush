@@ -1,27 +1,20 @@
 # SnowRush
 
-![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript&logoColor=white)
 ![Three.js](https://img.shields.io/badge/Three.js-r186-000000?logo=three.js&logoColor=white)
 ![Rapier](https://img.shields.io/badge/Rapier-0.20-FF6F00)
 ![License](https://img.shields.io/badge/license-MIT-green)
 [![Demo](https://img.shields.io/badge/demo-GitHub%20Pages-brightgreen)](https://xingyezn.github.io/SnowRush/)
 
-SnowRush 是一个基于浏览器运行的第三人称 3D 单板滑雪小游戏。
+**SnowRush** 是一款运行在浏览器里的第三人称 **Low-poly 街机单板滑雪游戏**。
 
-项目采用：
-
-- Vite
-- TypeScript
-- Three.js
-- Rapier.js
-
-游戏定位为 **Low-poly + Arcade Snowboarding Game**。  
-玩家从雪山顶部向下滑行，通过转向、加速、刹车、跳跃和空中特技获得分数，并最终完成整条赛道。
+无需安装、无需注册，打开网页即可从雪山之巅一路滑下：转向、加速、刹车、起跳，
+在空中完成前后空翻与转体，落得漂亮还能连招加分，最终冲过终点。
 
 ### ▶ 在线试玩
 
 **https://xingyezn.github.io/SnowRush/**
+
+> 建议使用桌面版 Chrome / Edge（需要键盘操作）。
 
 ### 截图
 
@@ -31,377 +24,69 @@ SnowRush 是一个基于浏览器运行的第三人称 3D 单板滑雪小游戏�
 
 ---
 
-## 1. 核心目标
+## 玩法特色
 
-第一阶段不追求真实滑雪模拟，而是优先实现：
-
-1. 明显的下坡与速度感
-2. 平滑、容易理解的滑雪操控
-3. 第三人称跟随镜头
-4. 跳跃与空中特技
-5. 障碍物、跳台、旗门和检查点
-6. 分数、时间、速度和 Combo HUD
-7. 可直接部署到 GitHub Pages
-
-开发原则：
-
-> 可运行性 > 操控体验 > 游戏逻辑 > 美术效果
+- **街机滑雪手感**：弧线 Carving 转向、下坡加速、刹车，速度越快镜头越远、视角越广。
+- **跳跃与空中特技**：Frontflip、Backflip、Double、360、720、1080，以及各种组合连招。
+- **落地判定与连击**：根据落地角度判定安全 / 勉强 / 摔车，连续成功特技 Combo 倍率越高。
+- **完整赛道流程**：7 段赛道（热身 / 树林 / 旗门 / 跳台 / 高速 / 大跳台 / 终点）、检查点、计时与成绩单。
+- **可玩角色**：多名角色可选，开始菜单即可预览、旋转查看。
+- **四季雪景**：雪顶远山、两侧悬崖、飘雪、雪痕、落地雪爆与天空云朵。
+- **程序化音效**：风声、滑行声、跳跃、落地、摔车等随速度变化，无需下载音频资源。
+- **中文 / English**：界面默认中文，可一键切换英文。
 
 ---
 
-## 2. 核心玩法
+## 操作方式
 
-玩家从起点出发：
-
-```text
-START
-  ↓
-下坡滑行
-  ↓
-控制方向 / 加速 / 刹车
-  ↓
-躲避树木和岩石
-  ↓
-通过旗门与检查点
-  ↓
-进入跳台
-  ↓
-完成 Frontflip / Backflip / Spin
-  ↓
-安全落地
-  ↓
-获得 Trick Score / Combo
-  ↓
-继续滑行
-  ↓
-FINISH
-```
-
-单局目标时长：
-
-- 2–5 分钟
-
----
-
-## 3. 控制方式
-
-### 地面状态
+### 地面
 
 | 按键 | 功能 |
 |---|---|
+| W / ↑ | 加速 |
+| S / ↓ | 刹车 |
 | A / ← | 左转 |
 | D / → | 右转 |
-| W | 加速 |
-| S | 刹车 |
 | Space | 跳跃 |
-| Shift | Boost |
-| R | 重置到最近检查点 |
+| R | 回到最近检查点 |
 | P / ESC | 暂停 |
 
-### 空中状态
+### 空中
 
 | 按键 | 功能 |
 |---|---|
-| W | Frontflip |
-| S | Backflip |
-| A / D | Spin / Roll |
+| W | 前空翻（Frontflip） |
+| S | 后空翻（Backflip） |
+| A / D | 转体（Spin） |
 
 ---
 
-## 4. 技术栈
+## 技术栈
 
-```text
-Vite
-TypeScript
-Three.js
-@dimforge/rapier3d
-HTML
-CSS
-```
-
-第一版不使用：
-
-- React
-- Vue
-- 后端
-- 数据库
-- 账号系统
-- 多人联网
+- [Vite](https://vitejs.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- [Three.js](https://threejs.org/)（渲染）
+- [Rapier](https://rapier.rs/)（物理）
+- 纯 HTML / CSS 界面
 
 ---
 
-## 5. 推荐项目结构
-
-```text
-snow-rush/
-│
-├── index.html
-├── package.json
-├── vite.config.ts
-├── tsconfig.json
-├── README.md
-├── PRODUCT_SPEC.md
-├── ARCHITECTURE.md
-├── TASKS.md
-├── AGENTS.md
-│
-├── public/
-│   ├── audio/
-│   └── models/
-│
-└── src/
-    ├── main.ts
-    │
-    ├── core/
-    │   ├── Game.ts
-    │   ├── GameLoop.ts
-    │   ├── GameState.ts
-    │   ├── InputManager.ts
-    │   └── Config.ts
-    │
-    ├── physics/
-    │   └── PhysicsWorld.ts
-    │
-    ├── player/
-    │   ├── Player.ts
-    │   ├── PlayerController.ts
-    │   ├── PlayerVisual.ts
-    │   └── TrickSystem.ts
-    │
-    ├── camera/
-    │   └── FollowCamera.ts
-    │
-    ├── world/
-    │   ├── Terrain.ts
-    │   ├── Mountain.ts
-    │   ├── Tree.ts
-    │   ├── Rock.ts
-    │   ├── JumpRamp.ts
-    │   ├── Gate.ts
-    │   ├── Checkpoint.ts
-    │   └── CourseGenerator.ts
-    │
-    ├── effects/
-    │   ├── SnowParticles.ts
-    │   ├── SnowTrail.ts
-    │   └── LandingEffect.ts
-    │
-    ├── systems/
-    │   ├── ScoreSystem.ts
-    │   ├── CollisionSystem.ts
-    │   ├── CheckpointSystem.ts
-    │   └── AudioSystem.ts
-    │
-    ├── ui/
-    │   ├── HUD.ts
-    │   ├── TrickHUD.ts
-    │   ├── StartMenu.ts
-    │   └── ResultScreen.ts
-    │
-    └── styles/
-        └── game.css
-```
-
----
-
-## 6. 开发阶段
-
-### V0.1 Prototype
-
-目标：**能滑**
-
-实现：
-
-- Three.js Scene
-- Terrain
-- Player
-- Input
-- Arcade Snow Physics
-- Follow Camera
-- Speed HUD
-
-### V0.2 Gameplay
-
-目标：**能玩**
-
-增加：
-
-- Tree
-- Rock
-- JumpRamp
-- Collision
-- Checkpoint
-- Crash
-- Respawn
-- Score
-- Timer
-- Finish
-
-### V0.3 Trick
-
-目标：**好玩**
-
-增加：
-
-- Jump
-- Frontflip
-- Backflip
-- 360
-- 720
-- Landing
-- Combo
-- Trick HUD
-
-### V0.4 Polish
-
-目标：**好看**
-
-增加：
-
-- Snow Trail
-- Particles
-- Fog
-- Camera FOV
-- Camera Shake
-- Character Lean
-- Landing Effect
-- Lighting
-- Audio
-- UI Animation
-
-### V0.5 Release
-
-目标：**可发布**
-
-完成：
-
-- 性能优化
-- Bug Fix
-- Responsive UI
-- README 完善
-- Build
-- GitHub Pages
-
----
-
-## 7. 本地开发
-
-安装依赖：
+## 本地运行
 
 ```bash
 npm install
+npm run dev       # 打开 http://localhost:5173/
 ```
 
-运行开发服务器：
-
-```bash
-npm run dev
-```
-
-构建：
+打包与预览：
 
 ```bash
 npm run build
+npm run preview   # 打开 http://localhost:4173/
 ```
-
-预览构建结果：
-
-```bash
-npm run preview
-```
-
-### 选择 / 替换人物模型
-
-游戏自带 5 名 CC0 角色（Cat + Kenney Animated Characters），在**开始菜单的 RIDER**
-一栏即可切换，选择会记在浏览器本地。
-
-如需换成自己的模型，放在 `public/models/`，支持 `.glb` / `.gltf` / `.fbx`：
-
-- GLB / glTF：`public/models/rider.glb`（优先）
-- FBX：`public/models/rider.fbx`
-
-要求：
-
-- 单一骨骼模型，站在原点；高度会自动缩放到 `CONFIG.player.riderHeight`（1.3m），脚底对齐 y=0
-- 动画按名字后缀识别：`Idle`（地面）、`Walking` / `Run` / `Jump`（空中）
-- 材质名 `Shirt` / `Pants` / `Socks` / `Hair` / `Grey` 会被重新上色，其余材质保留原色
-
-树木 / 岩石同理：把新的 `.glb` / `.fbx` 放进 `public/models/`，再修改
-`src/world/ModelLibrary.ts` 里的 `TREE_URLS` / `ROCK_URLS` 文件名即可。
 
 ---
 
-## 8. 发布要求
+## 许可
 
-最终必须支持：
-
-```bash
-npm run build
-```
-
-并保证：
-
-- 0 TypeScript Error
-- 0 Build Error
-- dist 可直接部署
-- GitHub Pages 可访问
-
----
-
-## 9. 文档说明
-
-- `PRODUCT_SPEC.md`：产品需求与玩法规范
-- `ARCHITECTURE.md`：技术架构与系统边界
-- `TASKS.md`：分阶段开发任务清单
-- `AGENTS.md`：供 Codex / DeepSeek Harness / Claude Code 等智能体执行的开发规则
-
----
-
-## 10. 当前状态与部署
-
-### 已实现（V0.0 – V0.5）
-
-- 程序化雪山赛道：7 段（Intro / Trees / Slalom / Jump / High Speed / Big Jump / Finish）
-- Arcade 滑雪操控：弧线 Carving 转向、下坡加速、刹车、跳跃、空中特技
-- 世界物件：松树、岩石、旗门、跳台、检查点、终点（树 / 石 / 门 / 检查点使用 InstancedMesh）
-- 流程：Crash → 检查点 Respawn、计分、计时、倒计时、暂停、成绩单、再来一局
-- 特技：Frontflip / Backflip / Double / 360 / 720 / 1080 / 组合，落地质量判定，Combo 倍率
-- 视觉：低多边形**雪顶远山**（富士山式白顶、跟随玩家、恒定远景、闭合地平线）、**天空云朵**、两侧悬崖带、地形坡度着色、雾、雪痕 / 雪雾 / 落地雪爆 / 环境飘雪、角色与雪板侧倾
-- 雪景：松树绿色为底、朝上表面局部积雪；雪盖岩石
-- 相机：阻尼跟随、速度联动 FOV / 距离、跳跃滞后、落地 / Crash 抖动、遮挡自动拉近
-- 音频：Web Audio 程序化合成（风、滑行、跳跃、落地、Crash、检查点、Combo），**无外部音频资源**
-- UI：开始菜单（含 RIDER 角色选择 + **角色预览**）、暂停菜单、HUD、Trick 弹字、成绩单
-- 语言：界面默认**中文**，开始 / 暂停菜单可切换英文（持久化到本地）
-- 角色：RUNER / PANDA 两名可选角色（用户提供的 GLB，经 Blender 减面 + 自动绑定骨骼 + `Idle` 动画）；开始菜单可预览（角色原地旋转，支持拖拽手动旋转）
-- 工具：`tools/optimize_model.py`（减面 + 贴图压缩）、`tools/rig_model.py`（自动骨骼 + 动画）
-
-### 快速开始
-
-```bash
-npm install
-npm run dev      # http://localhost:5173/
-```
-
-### 构建与本地预览
-
-```bash
-npm run build
-npm run preview  # http://localhost:4173/
-```
-
-### 部署到 GitHub Pages
-
-1. 推送到 `main`（或 `master`）分支。
-2. 仓库 Settings → Pages → Build and deployment → Source 选择 **GitHub Actions**。
-3. `.github/workflows/deploy.yml` 会自动构建并发布。
-4. 访问 `https://<用户名>.github.io/<仓库名>/`。
-
-`vite.config.ts` 使用 `base: './'`，可直接部署到任意子路径，无需修改配置。
-
-### 验证
-
-```bash
-npm run build
-npm run test:physics   # 无头物理 / 特技 / 计分回归
-```
-
+本项目基于 [MIT License](LICENSE) 发布。所用第三方模型见
+[`public/models/LICENSE.txt`](public/models/LICENSE.txt)。
