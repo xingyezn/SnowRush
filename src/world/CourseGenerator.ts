@@ -215,6 +215,8 @@ export class CourseGenerator {
       scene,
       placements: forestPlacements,
       models: models.trees,
+      // Far more instances than the course trees; skip shadows to stay cheap.
+      castShadow: false,
     });
     this.cliffs = new ScatterField({
       physics,

@@ -37,6 +37,12 @@ export class Player {
   airRotationY = 0;
   airRotationZ = 0;
   airTime = 0;
+  /**
+   * True when the current air was launched upward (Space jump or ramp), so
+   * trick input is live. Terrain grazing (riding over a crest) keeps this
+   * false, otherwise a held W would turn every bump into a frontflip.
+   */
+  airControlEnabled = false;
   /** Visual board lean into the current turn (radians). */
   lean = 0;
 
@@ -94,6 +100,7 @@ export class Player {
     this.airRotationY = 0;
     this.airRotationZ = 0;
     this.airTime = 0;
+    this.airControlEnabled = false;
   }
 
   /** Enter the crash state: controls stop, the board scrubs most of its speed. */
@@ -111,6 +118,7 @@ export class Player {
     this.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
     this.heading = this.spawn.heading;
     this.grounded = false;
+    this.airControlEnabled = false;
     this.state = PlayerState.Airborne;
   }
 }

@@ -40,8 +40,13 @@ export class PlayerController {
     const normal = terrainNormalComponents(position.x, position.z);
     this.player.groundNormal.set(normal.x, normal.y, normal.z);
 
-    // Natural takeoff (riding off a lip or crest).
-    if (!grounded && wasGrounded) this.player.resetAirRotations();
+    // Natural takeoff (riding off a lip or crest). Only a genuine launch
+    // (positive vertical speed, e.g. a ramp) unlocks trick input; merely
+    // skimming over a bump must not turn a held W into a frontflip.
+    if (!grounded && wasGrounded) {
+      this.player.resetAirRotations();
+      this.player.airControlEnabled = velocity.y > CONFIG.player.airControlMinUpSpeed;
+    }
     if (this.jumpLock > 0) this.jumpLock -= dt;
 
     const turnInput = (this.input.isDown('right') ? 1 : 0) - (this.input.isDown('left') ? 1 : 0);
@@ -94,6 +99,7 @@ export class PlayerController {
         vertical = p.jumpForce;
         jumped = true;
         this.player.resetAirRotations();
+        this.player.airControlEnabled = true;
         this.player.grounded = false;
         this.player.state = PlayerState.Airborne;
       }
@@ -104,12 +110,16 @@ export class PlayerController {
     }
 
     // --- Airborne: ballistic momentum + free rotation -----------------------
-    const spinDelta = turnInput * p.airSpinSpeed * dt;
-    this.player.heading -= spinDelta;
-    this.player.airRotationY -= spinDelta;
+    // Trick input only applies after a real launch; otherwise (terrain grazing)
+    // the rider simply keeps the momentum and heading they took off with.
+    if (this.player.airControlEnabled) {
+      const spinDelta = turnInput * p.airSpinSpeed * dt;
+      this.player.heading -= spinDelta;
+      this.player.airRotationY -= spinDelta;
 
-    const flipInput = accelInput - brakeInput; // W = frontflip, S = backflip
-    this.player.airRotationX -= flipInput * p.airFlipSpeed * dt;
+      const flipInput = accelInput - brakeInput; // W = frontflip, S = backflip
+      this.player.airRotationX -= flipInput * p.airFlipSpeed * dt;
+    }
     this.player.airTime += dt;
     this.player.lean += (0 - this.player.lean) * (1 - Math.exp(-p.leanRate * dt));
 

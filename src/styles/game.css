@@ -329,12 +329,53 @@ body {
   pointer-events: none;
   transition: opacity 0.25s ease-out;
   font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#result-screen {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #start-menu.is-visible,
 #pause-menu.is-visible {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Start menu sits on the right so the character preview stays visible. */
+#start-menu {
+  justify-content: flex-end;
+  padding-right: 5vw;
+  cursor: grab;
+  touch-action: none;
+  background: linear-gradient(
+    90deg,
+    rgba(13, 43, 69, 0) 0%,
+    rgba(13, 43, 69, 0.08) 48%,
+    rgba(13, 43, 69, 0.38) 100%
+  );
+}
+
+.menu-preview-label {
+  position: absolute;
+  left: 9%;
+  top: 13%;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(13, 43, 69, 0.5);
+  opacity: 0.85;
+}
+
+#hud.is-hidden {
+  opacity: 0;
+}
+
+#hud {
+  transition: opacity 0.2s ease-out;
 }
 
 .menu-panel {
@@ -415,4 +456,63 @@ body {
   min-width: 76px;
   font-weight: 800;
   color: #2b6cb0;
+}
+
+.menu-characters {
+  margin-bottom: 16px;
+}
+
+.menu-characters-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  opacity: 0.55;
+  margin-bottom: 8px;
+}
+
+.character-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.character-chip {
+  padding: 10px 8px;
+  border: 2px solid #e3ebf4;
+  border-radius: 10px;
+  background: #f4f8fc;
+  color: #0d2b45;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.character-chip:hover {
+  border-color: #b9cde3;
+}
+
+.character-chip.is-selected {
+  background: #2b6cb0;
+  border-color: #2b6cb0;
+  color: #ffffff;
+}
+
+.menu-lang {
+  margin-top: 10px;
+  border: none;
+  background: transparent;
+  color: #2b6cb0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.menu-lang:hover {
+  opacity: 1;
+  text-decoration: underline;
 }

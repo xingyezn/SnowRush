@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CONFIG } from '../core/Config';
 
@@ -22,24 +23,74 @@ export interface RiderAsset {
   height: number;
 }
 
+/** A selectable rider on the start menu. */
+export interface CharacterOption {
+  id: string;
+  name: string;
+  rider: RiderAsset | null;
+  /** Yaw correction applied by PlayerVisual (model forward vs. game forward). */
+  yaw: number;
+}
+
 export interface ModelLibrary {
   trees: ModelAsset[];
   rocks: ModelAsset[];
   bushes: ModelAsset[];
-  rider: RiderAsset | null;
+  characters: CharacterOption[];
 }
 
-// Weighted toward the plain (green) pines; one snow-capped variant for variety.
-const TREE_URLS = ['models/pine1.fbx', 'models/pine2.fbx', 'models/pine1.fbx', 'models/pine_snow1.fbx'];
-const ROCK_URLS = ['models/rock1.fbx', 'models/rock2.fbx', 'models/rock3.fbx'];
+// Detailed CC0 Quaternius pines (higher-poly than the old pack) plus one
+// flat-shaded snow-capped pine for variety.
+const TREE_URLS = [
+  'models/pine_quat_a.glb',
+  'models/pine_quat_b.glb',
+  'models/pine_quat_a.glb',
+  'models/pine_quat_snow.glb',
+];
+const ROCK_URLS = [
+  'models/rock_quat_a.glb',
+  'models/rock_quat_b.glb',
+  'models/rock_quat_c.glb',
+  'models/rock_quat_snow.glb',
+];
 const BUSH_URLS = ['models/bush1.fbx', 'models/bush2.fbx', 'models/bush3.fbx'];
-const RIDER_URL = 'models/rider.fbx';
+
+/**
+ * Selectable riders. These are the project owner's GLB models, decimated and
+ * auto-rigged (simple "Idle" sway) in Blender. See public/models/LICENSE.txt.
+ */
+const CHARACTERS = [
+  { id: 'runer', name: 'RUNER', url: 'models/runer.glb' },
+  { id: 'panda', name: 'PANDA', url: 'models/panda.glb' },
+] as const;
 
 interface MeshLike {
   isMesh?: boolean;
   geometry?: THREE.BufferGeometry;
   material?: THREE.Material | THREE.Material[];
   matrixWorld: THREE.Matrix4;
+}
+
+interface LoadedObject {
+  object: THREE.Object3D;
+  animations: THREE.AnimationClip[];
+}
+
+const fbxLoader = new FBXLoader();
+const gltfLoader = new GLTFLoader();
+
+/**
+ * Loads a model by extension: `.glb` / `.gltf` via GLTFLoader, otherwise FBX.
+ * Both return the same shape so callers stay format-agnostic.
+ */
+async function loadObject(url: string): Promise<LoadedObject> {
+  const extension = url.split('.').pop()?.toLowerCase();
+  if (extension === 'glb' || extension === 'gltf') {
+    const gltf = await gltfLoader.loadAsync(url);
+    return { object: gltf.scene, animations: gltf.animations ?? [] };
+  }
+  const object = await fbxLoader.loadAsync(url);
+  return { object, animations: object.animations ?? [] };
 }
 
 /** Splits a mesh into per-material geometries (handles multi-material groups). */
@@ -167,42 +218,43 @@ function fallbackAsset(color: number, targetHeight: number): ModelAsset {
   };
 }
 
-/** Recolours every part of an asset (used to match the rocks to the palette). */
-function tint(asset: ModelAsset, color: number): ModelAsset {
-  for (const part of asset.parts) {
-    const material = part.material.clone();
-    if ('color' in material) (material as THREE.MeshStandardMaterial).color.setHex(color);
-    part.material = material;
-  }
-  return asset;
-}
-
-/** Recolours only the named materials (keeps e.g. snow white). */
-function tintByName(asset: ModelAsset, map: Record<string, number>): ModelAsset {
-  for (const part of asset.parts) {
-    const color = map[part.material.name];
-    if (color === undefined) continue;
-    const material = part.material.clone();
-    if ('color' in material) (material as THREE.MeshStandardMaterial).color.setHex(color);
-    part.material = material;
-  }
-  return asset;
+/**
+ * Adds a procedural snow layer to a material: up-facing surfaces fade toward
+ * white. Uses objectNormal.y, which matches world up for our Y-rotated,
+ * uniformly-scaled tree instances.
+ */
+function applySnowDusting(material: THREE.Material, coverage: number, amount: number): void {
+  const target = material as THREE.MeshStandardMaterial;
+  target.onBeforeCompile = (shader) => {
+    shader.uniforms.snowCoverage = { value: coverage };
+    shader.uniforms.snowAmount = { value: amount };
+    shader.vertexShader = `varying float vSnowUp;\n${shader.vertexShader}`.replace(
+      '#include <beginnormal_vertex>',
+      '#include <beginnormal_vertex>\n  vSnowUp = objectNormal.y;',
+    );
+    shader.fragmentShader =
+      `varying float vSnowUp;\nuniform float snowCoverage;\nuniform float snowAmount;\n${shader.fragmentShader}`.replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>\n  {
+    float snow = smoothstep(snowCoverage, snowCoverage + 0.25, vSnowUp) * snowAmount;
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.96, 1.0), snow);
+  }`,
+      );
+  };
+  target.customProgramCacheKey = () => `snow-${coverage}-${amount}`;
+  target.needsUpdate = true;
 }
 
 async function loadGroup(
-  loader: FBXLoader,
   urls: string[],
   targetHeight: number,
   fallbackColor: number,
-  options: { tint?: number; tintMap?: Record<string, number> } = {},
 ): Promise<ModelAsset[]> {
   const assets: ModelAsset[] = [];
   for (const url of urls) {
     try {
-      const object = await loader.loadAsync(url);
-      let asset = normalise(object, targetHeight);
-      if (options.tint !== undefined) asset = tint(asset, options.tint);
-      if (options.tintMap) asset = tintByName(asset, options.tintMap);
+      const { object } = await loadObject(url);
+      const asset = normalise(object, targetHeight);
       assets.push(asset);
     } catch (error) {
       console.warn(`SnowRush: could not load ${url}, using fallback`, error);
@@ -212,48 +264,49 @@ async function loadGroup(
   return assets;
 }
 
-async function loadRider(loader: FBXLoader): Promise<RiderAsset | null> {
-  try {
-    const object = await loader.loadAsync(RIDER_URL);
-    object.updateMatrixWorld(true);
+/** Scales a rider to CONFIG.player.riderHeight and aligns its feet to y = 0. */
+function buildRider(object: THREE.Object3D, animations: THREE.AnimationClip[]): RiderAsset {
+  object.updateMatrixWorld(true);
 
-    const bounds = new THREE.Box3().setFromObject(object);
-    const height = bounds.max.y - bounds.min.y;
-    const scale = CONFIG.player.riderHeight / Math.max(height, 0.0001);
+  const bounds = new THREE.Box3().setFromObject(object);
+  const height = bounds.max.y - bounds.min.y;
+  const scale = CONFIG.player.riderHeight / Math.max(height, 0.0001);
 
-    // Recolour so the rider reads against the snow (material names differ per
-    // model: human outfits vs. the cat's Grey/White/Pink fur).
-    const outfit: Record<string, number> = {
-      Shirt: CONFIG.colors.jacket,
-      Pants: CONFIG.colors.pants,
-      Socks: CONFIG.colors.pants,
-      Hair: CONFIG.colors.helmet,
-      Grey: CONFIG.colors.riderFur,
-    };
-    object.traverse((child) => {
-      const mesh = child as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      mesh.castShadow = true;
-      mesh.frustumCulled = false;
-      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      for (const material of materials) {
-        const color = outfit[material.name];
-        if (color === undefined || !('color' in material)) continue;
-        (material as THREE.MeshStandardMaterial).color.setHex(color);
+  object.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.castShadow = true;
+    mesh.frustumCulled = false;
+  });
+
+  // Scale/offset live on a container so the clips cannot overwrite them.
+  const container = new THREE.Group();
+  container.scale.setScalar(scale);
+  container.position.y = -bounds.min.y * scale;
+  container.add(object);
+
+  return { container, animations, height: CONFIG.player.riderHeight };
+}
+
+/** Loads every selectable rider (missing files fall back to the primitive). */
+async function loadCharacters(): Promise<CharacterOption[]> {
+  const options = await Promise.all(
+    CHARACTERS.map(async (def): Promise<CharacterOption> => {
+      try {
+        const { object, animations } = await loadObject(def.url);
+        return {
+          id: def.id,
+          name: def.name,
+          rider: buildRider(object, animations),
+          yaw: CONFIG.player.riderYaw,
+        };
+      } catch (error) {
+        console.warn(`SnowRush: could not load ${def.url}`, error);
+        return { id: def.id, name: def.name, rider: null, yaw: CONFIG.player.riderYaw };
       }
-    });
-
-    // Scale/offset live on a container so the clips cannot overwrite them.
-    const container = new THREE.Group();
-    container.scale.setScalar(scale);
-    container.position.y = -bounds.min.y * scale;
-    container.add(object);
-
-    return { container, animations: object.animations ?? [], height: CONFIG.player.riderHeight };
-  } catch (error) {
-    console.warn(`SnowRush: could not load ${RIDER_URL}, using procedural rider`, error);
-    return null;
-  }
+    }),
+  );
+  return options;
 }
 
 /** Model library built from primitives; used by headless tests and as a fallback. */
@@ -262,22 +315,25 @@ export function createFallbackLibrary(): ModelLibrary {
     trees: [fallbackAsset(CONFIG.colors.treeFoliage, CONFIG.course.trees.visualHeight)],
     rocks: [fallbackAsset(CONFIG.colors.rock, CONFIG.course.rocks.visualHeight)],
     bushes: [fallbackAsset(CONFIG.colors.treeFoliage, CONFIG.course.bushes.visualHeight)],
-    rider: null,
+    characters: [],
   };
 }
 
-/** Loads all CC0 Quaternius models (see public/models/LICENSE.txt). */
+/** Loads all CC0 models (see public/models/LICENSE.txt). FBX or GLB. */
 export async function loadModelLibrary(): Promise<ModelLibrary> {
-  const loader = new FBXLoader();
-  const [trees, rocks, bushes, rider] = await Promise.all([
-    loadGroup(loader, TREE_URLS, CONFIG.course.trees.visualHeight, CONFIG.colors.treeFoliage, {
-      tintMap: { Green: CONFIG.colors.pineGreen, Brown: CONFIG.colors.treeTrunk },
-    }),
-    loadGroup(loader, ROCK_URLS, CONFIG.course.rocks.visualHeight, CONFIG.colors.rock, {
-      tint: CONFIG.colors.rock,
-    }),
-    loadGroup(loader, BUSH_URLS, CONFIG.course.bushes.visualHeight, CONFIG.colors.treeFoliage),
-    loadRider(loader),
+  const [trees, rocks, bushes, characters] = await Promise.all([
+    // Textured pines keep their baked colours (no tint).
+    loadGroup(TREE_URLS, CONFIG.course.trees.visualHeight, CONFIG.colors.treeFoliage),
+    // Keep the models' own colours so the snow-capped rock stays white.
+    loadGroup(ROCK_URLS, CONFIG.course.rocks.visualHeight, CONFIG.colors.rock),
+    loadGroup(BUSH_URLS, CONFIG.course.bushes.visualHeight, CONFIG.colors.treeFoliage),
+    loadCharacters(),
   ]);
-  return { trees, rocks, bushes, rider };
+
+  const { snowCoverage, snowAmount } = CONFIG.course.trees;
+  for (const tree of trees) {
+    for (const part of tree.parts) applySnowDusting(part.material, snowCoverage, snowAmount);
+  }
+
+  return { trees, rocks, bushes, characters };
 }

@@ -52,6 +52,8 @@ export class FollowCamera {
     const c = CONFIG.camera;
     const t = THREE.MathUtils.clamp(speed / c.speedForMax, 0, 1);
 
+    if (this.camera.view) this.camera.clearViewOffset();
+
     const distance = THREE.MathUtils.lerp(c.minDistance, c.maxDistance, t);
     const height = THREE.MathUtils.lerp(c.baseHeight, c.maxHeight, t);
 
@@ -118,6 +120,34 @@ export class FollowCamera {
     }
 
     this.camera.lookAt(this.smoothedTarget);
+  }
+
+  /**
+   * Menu character-preview framing: a fixed three-quarter front view with the
+   * rider offset to the left of centre so the menu panel (right side) does not
+   * cover the model. The camera never moves; the rider is spun in place instead
+   * (see PlayerVisual.setPreviewYaw), so the background stays put.
+   */
+  showcase(playerPosition: THREE.Vector3, heading: number): void {
+    const c = CONFIG.camera;
+    const theta = heading + Math.PI + c.showcaseStartAngle;
+    const distance = c.showcaseDistance;
+    const camX = playerPosition.x + Math.sin(theta) * distance;
+    const camZ = playerPosition.z + Math.cos(theta) * distance;
+    const camY = playerPosition.y + c.showcaseHeight;
+
+    this.camera.position.set(camX, Math.max(camY, terrainHeight(camX, camZ) + 0.6), camZ);
+    this.camera.lookAt(
+      playerPosition.x,
+      playerPosition.y + c.showcaseLookOffsetY,
+      playerPosition.z,
+    );
+    if (this.camera.fov !== c.showcaseFov) this.camera.fov = c.showcaseFov;
+
+    // Shift the projection so the rider renders left of centre, clear of the
+    // menu panel on the right.
+    const aspect = this.camera.aspect;
+    this.camera.setViewOffset(aspect, 1, aspect * c.showcaseOffset, 0, aspect, 1);
   }
 
   /** Pull the camera in when a tree / rock cylinder blocks the view. */

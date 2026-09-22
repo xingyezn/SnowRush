@@ -22,10 +22,29 @@ export const CONFIG = {
     count: 80,
     minRadius: 2200,
     maxRadius: 3600,
-    baseY: -100,
-    minHeight: 400,
-    maxHeight: 900,
+    /**
+     * Bases sit below the lowest terrain (the course descends to ~-450), so the
+     * cones always close the horizon; otherwise a band of sky shows between the
+     * terrain edge and the peaks near the end of the run.
+     */
+    baseY: -700,
+    minHeight: 900,
+    maxHeight: 1600,
     color: 0xbcd4e8,
+    /** Local-Y (0..1) of the snow line and the cap colour. */
+    snowLine: 0.5,
+    snowColor: 0xfbfdff,
+  },
+
+  clouds: {
+    count: 22,
+    minRadius: 1200,
+    maxRadius: 3200,
+    /** Height above the rider's ground level. */
+    minHeight: 500,
+    maxHeight: 950,
+    driftSpeed: 0.008,
+    color: 0xffffff,
   },
 
   light: {
@@ -49,9 +68,15 @@ export const CONFIG = {
     segmentsZ: 480,
     /** Playable corridor width; the fence and walls sit at playWidth / 2. */
     playWidth: 140,
-    /** Terrain rises into cliff walls beyond this far from the corridor. */
-    edgeStartOffset: 12,
-    edgeRiseFactor: 0.045,
+    /**
+     * Beyond this distance from the corridor edge the terrain steps up into a
+     * near-vertical cliff band (instead of a smooth rising mound). The band
+     * rises `edgeSteepness` metres per lateral metre, capped at `edgeHeight`,
+     * then continues as a flat shelf to the mesh edge so no void is visible.
+     */
+    edgeStartOffset: 4,
+    edgeSteepness: 8,
+    edgeHeight: 45,
     /** Lateral meander of the course centre line (adds turns to the run). */
     curveAmp1: 17,
     curveFreq1: 0.0021,
@@ -96,6 +121,12 @@ export const CONFIG = {
       visualHeight: 9,
       colliderRadius: 0.75,
       colliderHeight: 5.5,
+      /**
+       * Snow dusting on up-facing surfaces (normal.y). Kept partial so the
+       * green foliage still reads: only the more horizontal tops go white.
+       */
+      snowCoverage: 0.52,
+      snowAmount: 0.6,
     },
     rocks: {
       count: 45,
@@ -132,16 +163,20 @@ export const CONFIG = {
       /** Physics wall segment length (coarser than the fence posts). */
       wallSpacing: 50,
     },
-    /** Decorative forest and cliff band along both sides of the corridor. */
+    /**
+     * Decorative forest and rock band. Insets are measured from the corridor
+     * edge, so they sit on the shelf behind the cliff step rather than inside
+     * its near-vertical face.
+     */
     forest: {
       count: 420,
-      inset: 4,
-      width: 26,
+      inset: 16,
+      width: 45,
     },
     cliffs: {
       count: 110,
-      inset: 2,
-      width: 12,
+      inset: 14,
+      width: 24,
     },
     checkpoints: {
       count: 4,
@@ -198,6 +233,8 @@ export const CONFIG = {
     /** Air control rates (rad/s): W/S pitch (flip), A/D yaw (spin). */
     airFlipSpeed: 5.2,
     airSpinSpeed: 5.5,
+    /** Minimum upward takeoff speed that counts as a real launch (ramp jump). */
+    airControlMinUpSpeed: 3,
     airFriction: 0.999,
     /** How fast velocity direction snaps to heading. Higher = tighter carve. */
     gripRate: 9,
@@ -251,6 +288,18 @@ export const CONFIG = {
     shakeDecay: 6,
     landingShakeScale: 0.16,
     crashShake: 0.5,
+    /** Menu character-preview framing (fixed camera, the rider spins in place). */
+    showcaseDistance: 4,
+    showcaseHeight: 1,
+    showcaseFov: 42,
+    showcaseOffset: 0.18,
+    /** Aim this far below the player centre so the whole rider sits mid-frame. */
+    showcaseLookOffsetY: -0.15,
+    showcaseStartAngle: 0.55,
+    /** Slow auto-spin of the rider (rad/s). */
+    showcaseSpinSpeed: 0.35,
+    /** Radians per pixel when the player drags to rotate the rider. */
+    showcaseDragSpeed: 0.01,
   },
 
   hud: {

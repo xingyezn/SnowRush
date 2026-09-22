@@ -438,6 +438,33 @@
 
 ---
 
+## Bug Fix
+
+- [x] 修复空地上持续按 W 会反复前空翻并摔车（地面微离地不再解锁特技输入，仅 Space 起跳 / 跳台真正腾空才生效；新增回归用例）
+
+## Polish Pass
+
+- [x] 远景山脉跟随玩家（`MountainBackdrop.update`），始终停在远处，不再随下坡掠过 / 越过镜头
+- [x] 松树增加程序化积雪：`applySnowDusting` 让朝上（`objectNormal.y`）的表面渐白
+- [x] 左右两侧由圆润土坡改为陡峭悬崖带（`edgeSteepness` / `edgeHeight`，其后为平台，避免露出世界边缘）
+- [x] 侧边森林 / 岩石移到悬崖上方平台（`forest.inset` / `cliffs.inset`）
+- [x] 接入 CC0 **Kenney Animated Characters** 人物（共享骨骼 + `SkeletonUtils.clone` 换肤），共 5 名可选角色
+- [x] 开始菜单新增 RIDER 选择器，选择用 localStorage 持久化（`SnowRush.character`）
+- [x] 开局菜单提供**角色预览**：菜单移到右侧、隐藏 HUD，`FollowCamera.showcase()` 用三分之四前视角 + 投影偏移把角色显示在左侧
+- [x] 新增 `src/ui/I18n.ts`：UI 默认**中文**，开始 / 暂停菜单可一键切英文，选择持久化（`SnowRush.language`）
+- [x] 远山改为**雪山**：`MountainBackdrop` 用着色器按局部高度把山顶渐白（类富士山）
+- [x] 松树积雪调整为「绿色为底 + 局部白雪」：`snowCoverage 0.52 / snowAmount 0.6`
+- [x] 角色预览：镜头固定、**角色原地旋转**（背景不跟着转），慢速自动旋转 + 鼠标 / 触摸拖拽手动旋转（`showcaseSpinSpeed` / `showcaseDragSpeed`）
+- [x] 接入用户模型 `runer.glb`（RUNER 角色，**懒加载**，仅在选中时读取，83MB / ~1.5M 三角面 / 无动画）
+- [x] 用 Blender 对 `runer.glb` 减面 + 贴图压缩：83MB → 2.9MB（1.5M → 45k 面，贴图 4096→1024 WebP）
+- [x] 新增用户模型 `panda.glb`（PANDA 角色），同样优化：29MB → 1.5MB（50k → 30k 面）
+- [x] 用 Blender 为 runer / panda 自动绑定 5 骨骼脊骨 + 循环 `Idle` 摆动动画（`tools/rig_model.py`）
+- [x] 删除原有角色（猫 + Kenney 人物），只保留 RUNER / PANDA
+- [x] 修复终点附近远山与地形之间露出的天空缝隙（山体基座下移到最低地形之下）
+- [x] 天空新增**低多边形云朵**（`src/world/Clouds.ts`，跟随玩家并缓慢漂移）
+
+---
+
 ## Performance
 
 - [x] 使用 InstancedMesh 优化 Trees
@@ -521,6 +548,11 @@
 > - 新增**屏幕上方暂停按钮**（点击弹出暂停菜单）
 > - 开始菜单显示 **BEST 分数**（localStorage 持久化）
 > - README 增加徽章与截图
+> - 树木 / 岩石替换为**更高精度 CC0 模型**（Quaternius，GLB）：松树 ×3（含积雪）+ 岩石 ×4（含积雪），
+>   不再是一面锥体；碰撞体尺寸沿用 `Config`
+> - `ModelLibrary` 按扩展名自动选择 **FBX / GLB / glTF**；角色模型放到 `public/models/rider.glb`
+>   或 `public/models/rider.fbx` 即可替换（GLB 优先）
+> - `ScatterField` 新增 `castShadow` 选项，远景森林关闭投影以抵消高模开销
 
 ---
 

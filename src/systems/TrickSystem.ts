@@ -99,6 +99,8 @@ export class TrickSystem {
 
   private evaluateLanding(): void {
     const p = this.player;
+    // Terrain grazing is neither a trick nor a crash.
+    if (!p.airControlEnabled) return;
     if (p.airTime < CONFIG.trick.minAirTime) return;
 
     const { angle, quality } = evaluateLanding(p.airRotationX, p.airRotationZ);

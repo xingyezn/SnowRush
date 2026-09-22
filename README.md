@@ -310,6 +310,25 @@ npm run build
 npm run preview
 ```
 
+### 选择 / 替换人物模型
+
+游戏自带 5 名 CC0 角色（Cat + Kenney Animated Characters），在**开始菜单的 RIDER**
+一栏即可切换，选择会记在浏览器本地。
+
+如需换成自己的模型，放在 `public/models/`，支持 `.glb` / `.gltf` / `.fbx`：
+
+- GLB / glTF：`public/models/rider.glb`（优先）
+- FBX：`public/models/rider.fbx`
+
+要求：
+
+- 单一骨骼模型，站在原点；高度会自动缩放到 `CONFIG.player.riderHeight`（1.3m），脚底对齐 y=0
+- 动画按名字后缀识别：`Idle`（地面）、`Walking` / `Run` / `Jump`（空中）
+- 材质名 `Shirt` / `Pants` / `Socks` / `Hair` / `Grey` 会被重新上色，其余材质保留原色
+
+树木 / 岩石同理：把新的 `.glb` / `.fbx` 放进 `public/models/`，再修改
+`src/world/ModelLibrary.ts` 里的 `TREE_URLS` / `ROCK_URLS` 文件名即可。
+
 ---
 
 ## 8. 发布要求
@@ -347,10 +366,14 @@ npm run build
 - 世界物件：松树、岩石、旗门、跳台、检查点、终点（树 / 石 / 门 / 检查点使用 InstancedMesh）
 - 流程：Crash → 检查点 Respawn、计分、计时、倒计时、暂停、成绩单、再来一局
 - 特技：Frontflip / Backflip / Double / 360 / 720 / 1080 / 组合，落地质量判定，Combo 倍率
-- 视觉：低多边形远山、山谷边界护栏、地形坡度着色、雾、雪痕 / 雪雾 / 落地雪爆 / 环境飘雪、角色与雪板侧倾
+- 视觉：低多边形**雪顶远山**（富士山式白顶、跟随玩家、恒定远景、闭合地平线）、**天空云朵**、两侧悬崖带、地形坡度着色、雾、雪痕 / 雪雾 / 落地雪爆 / 环境飘雪、角色与雪板侧倾
+- 雪景：松树绿色为底、朝上表面局部积雪；雪盖岩石
 - 相机：阻尼跟随、速度联动 FOV / 距离、跳跃滞后、落地 / Crash 抖动、遮挡自动拉近
 - 音频：Web Audio 程序化合成（风、滑行、跳跃、落地、Crash、检查点、Combo），**无外部音频资源**
-- UI：开始菜单、暂停菜单、HUD、Trick 弹字、成绩单
+- UI：开始菜单（含 RIDER 角色选择 + **角色预览**）、暂停菜单、HUD、Trick 弹字、成绩单
+- 语言：界面默认**中文**，开始 / 暂停菜单可切换英文（持久化到本地）
+- 角色：RUNER / PANDA 两名可选角色（用户提供的 GLB，经 Blender 减面 + 自动绑定骨骼 + `Idle` 动画）；开始菜单可预览（角色原地旋转，支持拖拽手动旋转）
+- 工具：`tools/optimize_model.py`（减面 + 贴图压缩）、`tools/rig_model.py`（自动骨骼 + 动画）
 
 ### 快速开始
 

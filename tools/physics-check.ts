@@ -150,6 +150,29 @@ function check(label: string, condition: boolean, detail: string): void {
   check('stays on course', maxX <= CONFIG.terrain.width / 2, `max |x| ${maxX.toFixed(1)}m`);
 }
 
+// --- Scenario 1b: holding W on open terrain must never crash ----------------
+{
+  const { physics, player, controller, input } = createRig();
+  let crashes = 0;
+  const trickSystem = new TrickSystem(player, {
+    onLanded: (r) => {
+      if (r.quality === 'crash') crashes++;
+    },
+  });
+  for (let i = 0; i < Math.round(30 / dt); i++) {
+    input.set('accelerate', true);
+    controller.update(dt);
+    physics.step();
+    trickSystem.update();
+    input.clearPressed();
+  }
+  console.log('--- glide holding W ---');
+  // Regression guard: W is both "accelerate" (ground) and "frontflip" (air).
+  // If terrain grazing unlocks air control, a held W frontflips on every bump
+  // and crashes the rider on empty snow.
+  check('holding W does not crash on open terrain', crashes === 0, `${crashes} crashes`);
+}
+
 // --- Scenario 2: hold a turn and confirm the path is a carved arc -----------
 {
   const { physics, player, controller, input, spawnZ } = createRig();

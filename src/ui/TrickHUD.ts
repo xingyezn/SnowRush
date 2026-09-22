@@ -1,4 +1,5 @@
 import type { Trick } from '../systems/TrickSystem';
+import { t } from './I18n';
 
 /**
  * Centre-screen trick popup: trick name, awarded points and combo multiplier.
@@ -30,7 +31,7 @@ export class TrickHUD {
     if (tricks.length === 0) return;
     this.nameEl.textContent = tricks.map((t) => t.name).join(' + ');
     this.scoreEl.textContent = `+${points}`;
-    this.comboEl.textContent = multiplier > 1 ? `COMBO ×${multiplier}` : '';
+    this.comboEl.textContent = multiplier > 1 ? `${t('trick.combo')} ×${multiplier}` : '';
 
     this.root.classList.remove('is-visible');
     // Force a reflow so re-showing restarts the animation.

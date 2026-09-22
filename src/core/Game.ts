@@ -9,8 +9,9 @@ import { Lighting } from '../world/Lighting';
 import { Terrain } from '../world/Terrain';
 import { Boundary } from '../world/Boundary';
 import { MountainBackdrop } from '../world/MountainBackdrop';
+import { Clouds } from '../world/Clouds';
 import { CourseGenerator } from '../world/CourseGenerator';
-import type { ModelLibrary } from '../world/ModelLibrary';
+import type { CharacterOption, ModelLibrary } from '../world/ModelLibrary';
 import { terrainHeight } from '../world/TerrainHeight';
 import { Player, type SpawnPoint } from '../player/Player';
 import { PlayerController } from '../player/PlayerController';
@@ -22,6 +23,7 @@ import { TrickHUD } from '../ui/TrickHUD';
 import { StartMenu } from '../ui/StartMenu';
 import { PauseMenu } from '../ui/PauseMenu';
 import { ResultScreen } from '../ui/ResultScreen';
+import { t } from '../ui/I18n';
 import { CollisionSystem } from '../systems/CollisionSystem';
 import { CheckpointSystem } from '../systems/CheckpointSystem';
 import { ScoreSystem } from '../systems/ScoreSystem';
@@ -35,9 +37,12 @@ import { TrickSystem, type LandingResult } from '../systems/TrickSystem';
  */
 export class Game {
   private static readonly BEST_SCORE_KEY = 'SnowRush.best';
+  private static readonly CHARACTER_KEY = 'SnowRush.character';
 
   private readonly renderer: Renderer;
   private readonly lighting: Lighting;
+  private readonly mountainBackdrop: MountainBackdrop;
+  private readonly clouds: Clouds;
   private readonly physics: PhysicsWorld;
   readonly terrain: Terrain;
   readonly boundary: Boundary;
@@ -61,6 +66,8 @@ export class Game {
   private readonly scoreSystem = new ScoreSystem();
   private readonly timer = new Timer();
   private readonly startSpawn: SpawnPoint;
+  private readonly characters: CharacterOption[];
+  private selectedCharacterId: string;
 
   private readonly playerPosition = new THREE.Vector3();
   private state: GameState = GameState.Loading;
@@ -69,6 +76,7 @@ export class Game {
   private countdownRemaining = 0;
   private maxSpeedKmh = 0;
   private wasGrounded = true;
+  private previewYaw = 0;
 
   constructor(container: HTMLElement, models: ModelLibrary) {
     this.renderer = new Renderer(container);
@@ -80,12 +88,16 @@ export class Game {
 
     this.terrain = new Terrain(this.physics, this.renderer.scene);
     this.boundary = new Boundary(this.physics, this.renderer.scene);
-    new MountainBackdrop(this.renderer.scene);
+    this.mountainBackdrop = new MountainBackdrop(this.renderer.scene);
+    this.clouds = new Clouds(this.renderer.scene);
     this.course = new CourseGenerator(this.physics, this.renderer.scene, models);
     this.player = new Player(this.physics, this.createSpawnPoint());
     this.startSpawn = { ...this.player.spawn };
 
-    this.playerVisual = new PlayerVisual(models.rider);
+    this.characters = models.characters;
+    this.selectedCharacterId = this.loadCharacterId();
+    this.playerVisual = new PlayerVisual();
+    this.applyCharacter(this.selectedCharacterId);
     this.renderer.scene.add(this.playerVisual.group);
     this.snowEffects = new SnowEffects(this.renderer.scene);
 
@@ -95,6 +107,9 @@ export class Game {
     this.hud.onPause(() => this.togglePause());
     this.trickHud = new TrickHUD(container);
     this.startMenu = new StartMenu(container);
+    this.startMenu.setOnPreviewDrag((dx) => {
+      this.previewYaw += dx * CONFIG.camera.showcaseDragSpeed;
+    });
     this.pauseMenu = new PauseMenu(container);
     this.resultScreen = new ResultScreen(container);
 
@@ -118,11 +133,42 @@ export class Game {
 
   init(): void {
     this.state = GameState.Menu;
-    this.startMenu.show(this.loadBestScore(), () => {
-      this.audio.unlock();
-      this.startMenu.hide();
-      this.beginRun();
-    });
+    this.startMenu.show(
+      this.loadBestScore(),
+      this.characters,
+      this.selectedCharacterId,
+      () => {
+        this.audio.unlock();
+        this.startMenu.hide();
+        this.beginRun();
+      },
+      (id) => {
+        this.selectedCharacterId = id;
+        this.saveCharacterId(id);
+        this.applyCharacter(id);
+      },
+    );
+  }
+
+  private applyCharacter(id: string): void {
+    const character = this.characters.find((entry) => entry.id === id) ?? this.characters[0];
+    this.playerVisual.setRider(character?.rider ?? null, character?.yaw ?? CONFIG.player.riderYaw);
+  }
+
+  private loadCharacterId(): string {
+    try {
+      return window.localStorage.getItem(Game.CHARACTER_KEY) ?? this.characters[0]?.id ?? '';
+    } catch {
+      return this.characters[0]?.id ?? '';
+    }
+  }
+
+  private saveCharacterId(id: string): void {
+    try {
+      window.localStorage.setItem(Game.CHARACTER_KEY, id);
+    } catch {
+      // localStorage can be unavailable (private mode); ignore.
+    }
   }
 
   private loadBestScore(): number {
@@ -188,6 +234,7 @@ export class Game {
     this.maxSpeedKmh = 0;
     this.crashTimer = 0;
     this.crashElapsed = 0;
+    this.previewYaw = 0;
     this.checkpointSystem.reset(this.startSpawn);
     this.player.setSpawn(this.startSpawn);
     this.player.respawn();
@@ -213,7 +260,7 @@ export class Game {
     this.player.crash();
     this.followCamera.addShake(CONFIG.camera.crashShake);
     this.audio.playCrash();
-    this.hud.setMessage('CRASHED');
+    this.hud.setMessage(t('message.crashed'));
   };
 
   private readonly handleLanded = (result: LandingResult): void => {
@@ -240,7 +287,7 @@ export class Game {
   private readonly handleCheckpoint = (index: number): void => {
     this.checkpointSystem.setCheckpoint(index, this.course.checkpoints.checkpoints[index]);
     this.audio.playCheckpoint();
-    this.hud.setMessage('CHECKPOINT');
+    this.hud.setMessage(t('message.checkpoint'));
   };
 
   private readonly handleFinish = (): void => {
@@ -340,7 +387,7 @@ export class Game {
 
     if (this.state === GameState.Countdown) {
       this.hud.setMessage(
-        this.countdownRemaining > 0 ? String(Math.ceil(this.countdownRemaining)) : 'GO!',
+        this.countdownRemaining > 0 ? String(Math.ceil(this.countdownRemaining)) : t('message.go'),
       );
     }
 
@@ -349,8 +396,23 @@ export class Game {
         ? Math.min(this.crashElapsed * CONFIG.crash.tiltSpeed, 1.5)
         : 0;
 
+    // The rider idles in menus / countdown even though the controller has not
+    // yet marked them grounded. In the menu it plays the action clip so the
+    // preview shows a basic move.
+    const playing = this.state === GameState.Playing;
     const animation: RiderAnimation =
-      this.state === GameState.Crashed ? 'crash' : this.player.grounded ? 'idle' : 'air';
+      this.state === GameState.Crashed
+        ? 'crash'
+        : this.state === GameState.Menu
+          ? 'air'
+          : !playing || this.player.grounded
+            ? 'idle'
+            : 'air';
+    // The menu preview spins the rider in place (fixed camera, fixed world).
+    const menuPreview = this.state === GameState.Menu;
+    if (menuPreview) this.previewYaw += dt * CONFIG.camera.showcaseSpinSpeed;
+    this.playerVisual.setPreviewYaw(menuPreview ? this.previewYaw : 0);
+
     this.playerVisual.setAnimation(animation);
     this.playerVisual.update(dt);
     this.playerVisual.sync(
@@ -370,14 +432,22 @@ export class Game {
     }
     this.wasGrounded = grounded;
     this.audio.update(this.player.getSpeed(), grounded);
-    this.followCamera.update(
-      position,
-      this.player.heading,
-      this.player.getSpeed(),
-      dt,
-      this.player.grounded,
-    );
+    if (this.state === GameState.Menu) {
+      this.followCamera.showcase(position, this.player.heading);
+    } else {
+      this.followCamera.update(
+        position,
+        this.player.heading,
+        this.player.getSpeed(),
+        dt,
+        this.player.grounded,
+      );
+    }
     this.lighting.update(position);
+    const groundY = terrainHeight(position.x, position.z);
+    this.mountainBackdrop.update(position.x, position.z);
+    this.clouds.update(position.x, groundY, position.z, dt);
+    this.hud.setVisible(this.state !== GameState.Menu);
     this.hud.update(this.player);
     this.hud.setScore(this.scoreSystem.getScore());
     this.hud.setTime(this.timer.format());

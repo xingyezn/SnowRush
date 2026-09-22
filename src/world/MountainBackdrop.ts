@@ -8,6 +8,8 @@ import { Rng } from '../core/Rng';
  * no fog (they are pre-tinted to sit just beyond the fogged terrain).
  */
 export class MountainBackdrop {
+  private readonly mesh: THREE.InstancedMesh;
+
   constructor(scene: THREE.Scene) {
     const c = CONFIG.mountains;
     const rng = new Rng(CONFIG.course.seed ^ 0x9e3779b9);
@@ -22,9 +24,28 @@ export class MountainBackdrop {
       fog: false,
     });
 
+    // Snow cap: fade the upper part of each peak to white (Fuji-like). The cone
+    // geometry spans y 0..1, so a local-Y varying gives an instance-independent
+    // snow line that scales with each mountain's height.
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.snowLine = { value: c.snowLine };
+      shader.uniforms.snowColor = { value: new THREE.Color(c.snowColor) };
+      shader.vertexShader = `varying float vPeakY;\n${shader.vertexShader}`.replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\n  vPeakY = position.y;',
+      );
+      shader.fragmentShader =
+        `varying float vPeakY;\nuniform float snowLine;\nuniform vec3 snowColor;\n${shader.fragmentShader}`.replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>\n  diffuseColor.rgb = mix(diffuseColor.rgb, snowColor, smoothstep(snowLine, snowLine + 0.18, vPeakY));`,
+        );
+    };
+    material.customProgramCacheKey = () => `mountain-snow-${c.snowLine}`;
+
     const mesh = new THREE.InstancedMesh(geometry, material, c.count);
     mesh.castShadow = false;
     mesh.receiveShadow = false;
+    this.mesh = mesh;
 
     const matrix = new THREE.Matrix4();
     const quat = new THREE.Quaternion();
@@ -48,5 +69,15 @@ export class MountainBackdrop {
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
     scene.add(mesh);
+  }
+
+  /**
+   * Keeps the range centred on the rider so the peaks stay at a fixed distance.
+   * The bases sit below the lowest terrain (see CONFIG.mountains.baseY), so the
+   * peaks always fill the horizon instead of opening a band of sky between the
+   * terrain edge and the mountains.
+   */
+  update(x: number, z: number): void {
+    this.mesh.position.set(x, 0, z);
   }
 }

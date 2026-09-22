@@ -31,11 +31,12 @@ export function terrainHeight(x: number, z: number): number {
   const smallNoise =
     t.smallNoiseAmp * Math.sin(x * t.smallNoiseFreqX) * Math.cos(z * t.smallNoiseFreqZ);
 
-  // Cliff walls outside the playable corridor so the terrain edge is never a
-  // visible void. Measured from the meandering centre line, so the walls follow
-  // the course; the downhill slope is unaffected.
-  const edge = Math.max(0, Math.abs(x - courseCenterX(z)) - (t.playWidth / 2 + t.edgeStartOffset));
-  const edgeRise = edge * edge * t.edgeRiseFactor;
+  // Cliff band outside the playable corridor: a steep step up (not a smooth
+  // mound) followed by a flat shelf, so the terrain edge is never a visible
+  // void. Measured from the meandering centre line, so it follows the course;
+  // the downhill slope is unaffected.
+  const edge = Math.abs(x - courseCenterX(z)) - (t.playWidth / 2 + t.edgeStartOffset);
+  const edgeRise = edge > 0 ? Math.min(edge * t.edgeSteepness, t.edgeHeight) : 0;
 
   return base + largeWave + crossWave + smallNoise + edgeRise;
 }

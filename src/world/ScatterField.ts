@@ -25,6 +25,8 @@ export interface ScatterOptions {
   placements: ScatterPlacement[];
   models: ModelAsset[];
   collider?: ScatterCollider;
+  /** Decorative fields can skip the shadow pass to save GPU time. Default true. */
+  castShadow?: boolean;
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -38,6 +40,7 @@ export class ScatterField {
 
   constructor(options: ScatterOptions) {
     const { physics, scene, placements, models, collider } = options;
+    const castShadow = options.castShadow ?? true;
     this.placements = placements;
     if (placements.length === 0 || models.length === 0) return;
 
@@ -49,7 +52,7 @@ export class ScatterField {
       if (counts[variant] === 0) return [];
       return asset.parts.map((part) => {
         const mesh = new THREE.InstancedMesh(part.geometry, part.material, counts[variant]);
-        mesh.castShadow = true;
+        mesh.castShadow = castShadow;
         mesh.receiveShadow = true;
         scene.add(mesh);
         return mesh;

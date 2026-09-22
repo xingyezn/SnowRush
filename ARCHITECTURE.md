@@ -798,8 +798,25 @@ tools/physics-check.ts          无头回归测试（npm run test:physics）
 ### 33.4 外部资源
 
 - `public/models/` 存放 **CC0 1.0** 的 Quaternius 模型：
-  雪松 / 岩石 / 灌木（静态，用于散布）+ 人物 `rider.fbx`（骨骼动画）
+  松树 / 岩石 / 灌木（静态，用于散布）+ 人物（骨骼动画）
   见 `public/models/LICENSE.txt`
+- `ModelLibrary` 按文件扩展名自动选择加载器：`.glb` / `.gltf` 用 `GLTFLoader`，
+  其余用 `FBXLoader`。角色可放 `rider.glb` 或 `rider.fbx`（GLB 优先）
+- 可选角色（CC0 Kenney）：`characters/character.fbx` 为共享骨骼，配 `idle/run/jump.fbx`
+  动画与多张皮肤贴图。用 `SkeletonUtils.clone` 为每个皮肤克隆独立骷髅，动画按
+  `Idle` / `Run` / `Jump` 重命名后由 `PlayerVisual` 交叉淡入
+- `ModelLibrary.characters` 是可选角色列表；`StartMenu` 渲染 RIDER 选择器，
+  `Game.applyCharacter()` 在开局时调用 `PlayerVisual.setRider()` 换人
+- 菜单状态（`GameState.Menu`）下 `FollowCamera.showcase()` 使用**固定机位** + `setViewOffset`
+  把角色置于画面左侧；由 `PlayerVisual.setPreviewYaw()` 让**角色原地旋转**（背景不动），
+  慢速自动旋转，并支持在菜单上拖拽手动旋转（`StartMenu.setOnPreviewDrag`）
+- 角色为用户提供的 GLB（`runer.glb` / `panda.glb`），已用 `tools/optimize_model.py`
+  减面 + 压缩贴图，并用 `tools/rig_model.py` 自动绑定 5 骨骼脊骨与循环 `Idle` 动画
+- 远山基座位于最低地形之下，避免地形边缘与山体之间露出天空；`src/world/Clouds.ts`
+  提供跟随玩家的低多边形云朵
+- 文案统一走 `src/ui/I18n.ts`：`t(key)` 取词条，`onLanguageChange()` 让各 UI 重渲染；
+  默认中文，可切英文，存于 localStorage
+- 远山 `MountainBackdrop.update()` 每帧跟随玩家水平坐标，使群山始终保持在远处
 - 模型在 `main.ts` 中先加载完成再构建 `Game`，保证 `CourseGenerator` 可同步实例化
 - 加载失败时 `ModelLibrary` 会退回程序化几何体，游戏仍可运行
 - 静态模型归一化：按材质拆分 geometry group → 合并 → 底部对齐 y=0、XZ 居中、缩放到 `visualHeight`

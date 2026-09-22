@@ -1,26 +1,27 @@
 Third-party 3D models used by SnowRush
 ======================================
 
-Source : "LowPoly Models by @Quaternius" (https://quaternius.com)
-License: CC0 1.0 Universal (Public Domain Dedication)
-         https://creativecommons.org/publicdomain/zero/1.0/
+Nature - CC0 1.0 Universal (Public Domain Dedication)
+-----------------------------------------------------
+Source: "LowPoly Models by @Quaternius" (https://quaternius.com)
+        Distributed via Poly Pizza (https://poly.pizza)
 
-CC0 places the work in the public domain: attribution is not required, but is
-given here as a courtesy.
+  pine_quat_a.glb  pine_quat_b.glb  pine_quat_snow.glb   (pines)
+  rock_quat_a.glb  rock_quat_b.glb  rock_quat_c.glb  rock_quat_snow.glb  (rocks)
+  bush1.fbx  bush2.fbx  bush3.fbx                         (bushes)
 
-Nature - "Nature Pack Essentials vol.3"
----------------------------------------
-  rock1.fbx rock2.fbx rock3.fbx
-  bush1.fbx bush2.fbx bush3.fbx
+Attribution is not required for CC0, but is given here as a courtesy.
 
-Nature - "Christmas Pack"
--------------------------
-  pine1.fbx         (PineTree)
-  pine2.fbx         (PineTreeTall)
-  pine_snow1.fbx    (PineTree_Snow)
-  pine_snow2.fbx    (PineTreeTall_Snow)
+Riders - models supplied by the project owner
+---------------------------------------------
+  runer.glb  panda.glb
 
-Characters - "Animal Pack Vol.2"
---------------------------------
-  rider.fbx         (Cat)
-  Animations used: Idle, Walking
+  These were provided as high-detail static GLBs (~83 MB / ~29 MB, no skeleton).
+  They were then optimised and auto-rigged for this project with Blender using
+  the scripts in tools/ (see tools/optimize_model.py and tools/rig_model.py):
+
+    1. Decimated to ~45k / ~30k triangles.
+    2. Embedded textures resized to 1024 and re-encoded as WebP.
+    3. Given a simple five-bone spine and a looping "Idle" clip.
+
+  License: owned/created by the project owner (not third-party CC0 content).
