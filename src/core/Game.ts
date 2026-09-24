@@ -155,6 +155,7 @@ export class Game {
   private timeRemaining = 0;
   private photoYaw = 0;
   private photoDist = 6;
+  private photoHeight = CONFIG.photo.height;
   private readonly adminMode: boolean;
   private tuningPanelsCreated = false;
   private tuningVisible = false;
@@ -507,8 +508,22 @@ export class Game {
 
   private enterPhoto(): void {
     this.state = GameState.Photo;
-    this.photoYaw = 0;
-    this.photoDist = CONFIG.photo.maxDistance * 0.6;
+    // Seed the orbit from the current chase-camera azimuth/distance so pressing
+    // K freezes the view instead of swinging the camera around.
+    const pos = this.player.getPosition(new THREE.Vector3());
+    const dx = this.renderer.camera.position.x - pos.x;
+    const dz = this.renderer.camera.position.z - pos.z;
+    this.photoDist = THREE.MathUtils.clamp(
+      Math.hypot(dx, dz),
+      CONFIG.photo.minDistance,
+      CONFIG.photo.maxDistance,
+    );
+    this.photoYaw = Math.atan2(dx, dz) - this.player.heading;
+    this.photoHeight = THREE.MathUtils.clamp(
+      this.renderer.camera.position.y - pos.y,
+      0.8,
+      8,
+    );
     this.hud.setVisible(false);
     this.hud.setMode(null);
     this.trickHud.clear();
@@ -1191,7 +1206,7 @@ export class Game {
     ) {
       this.followCamera.showcase(position, this.player.heading);
     } else if (this.state === GameState.Photo) {
-      this.followCamera.photo(position, this.player.heading, this.photoYaw, this.photoDist);
+      this.followCamera.photo(position, this.player.heading, this.photoYaw, this.photoDist, this.photoHeight);
     } else if (firstPerson) {
       this.followCamera.updateFirstPerson(
         position,

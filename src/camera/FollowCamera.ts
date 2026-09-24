@@ -155,16 +155,24 @@ export class FollowCamera {
   }
 
   /** Free orbit camera for photo mode (drag yaw + wheel zoom). */
-  photo(playerPosition: THREE.Vector3, heading: number, orbit: number, distance: number): void {
+  photo(
+    playerPosition: THREE.Vector3,
+    heading: number,
+    orbit: number,
+    distance: number,
+    height: number,
+  ): void {
     if (this.camera.view) this.camera.clearViewOffset();
-    const theta = heading + Math.PI + orbit;
+    // orbit = 0 keeps the camera behind the rider (same side as gameplay), so
+    // entering photo mode does not flip the view around.
+    const theta = heading + orbit;
     const camX = playerPosition.x + Math.sin(theta) * distance;
     const camZ = playerPosition.z + Math.cos(theta) * distance;
-    const camY = playerPosition.y + CONFIG.photo.height;
+    const camY = playerPosition.y + height;
     this.camera.position.set(camX, Math.max(camY, terrainHeight(camX, camZ) + 0.5), camZ);
     this.camera.lookAt(playerPosition.x, playerPosition.y + 0.4, playerPosition.z);
-    if (this.camera.fov !== 50) {
-      this.camera.fov = 50;
+    if (this.camera.fov !== CONFIG.camera.baseFov) {
+      this.camera.fov = CONFIG.camera.baseFov;
       this.camera.updateProjectionMatrix();
     }
   }

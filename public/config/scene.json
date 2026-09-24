@@ -10,11 +10,11 @@
     "driftSpeed": 0.008
   },
   "balloons": {
-    "count": 12,
-    "minRadius": 500,
-    "maxRadius": 550,
-    "minHeight": -200,
-    "maxHeight": 350,
+    "count": 10,
+    "minRadius": 850,
+    "maxRadius": 3550,
+    "minHeight": -165,
+    "maxHeight": 160,
     "speed": 7,
     "minScale": 3.8,
     "maxScale": 2.2

@@ -124,14 +124,14 @@ interface CharacterDef {
 const STANCE_YAW = Math.PI * 0.45;
 
 const CHARACTERS: CharacterDef[] = [
-  { id: 'runer', name: 'RUNER', url: 'models/runer.glb', yaw: CONFIG.player.riderYaw },
   { id: 'panda', name: 'PANDA', url: 'models/panda.glb', yaw: CONFIG.player.riderYaw },
+  { id: 'runer', name: 'RUNER', url: 'models/runer.glb', yaw: CONFIG.player.riderYaw },
   // Generated riders: model forward is +Z, turned side-on to the board
   // (yaw = STANCE_YAW − π). Offsets tuned with the admin panel (?admin=1).
   { id: 'fox', name: 'FOX', url: 'models/fox_board_gen.glb', yaw: STANCE_YAW - Math.PI, boardOffset: { x: -0.115, y: 0.185, z: 0.075 } },
   { id: 'cat', name: 'CAT', url: 'models/rider_cat_rigged.glb', yaw: STANCE_YAW - Math.PI, boardOffset: { x: 0.12, y: -0.005, z: 0.105 } },
-  // Rigged FBX character (own skeleton + clip): forward is +Z, yaw = π + stance.
-  { id: 'hero', name: 'HERO', url: 'models/rider_hero_rigged.glb', yaw: STANCE_YAW - Math.PI },
+  // HERO (rigged FBX) is hidden for now; keep the asset. Uncomment to restore.
+  // { id: 'hero', name: 'HERO', url: 'models/rider_hero_rigged.glb', yaw: STANCE_YAW - Math.PI },
   // Procedural panda snowboarder is currently hidden (ugly). The asset, the
   // build script and CharacterAnimator are kept; uncomment to bring it back.
   // { id: 'panda_boarder', name: 'PANDA BOARDER', url: 'models/panda_snowboarder.glb', yaw: Math.PI, ownBoard: true },
