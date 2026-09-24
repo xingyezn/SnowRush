@@ -45,6 +45,8 @@ export class Player {
   airControlEnabled = false;
   /** Visual board lean into the current turn (radians). */
   lean = 0;
+  /** Speed cap multiplier (boost pickups); 1 = normal. */
+  speedMultiplier = 1;
 
   constructor(physics: PhysicsWorld, spawn: SpawnPoint) {
     this.spawn = { ...spawn };
@@ -109,6 +111,13 @@ export class Player {
     this.grounded = false;
     const v = this.body.linvel();
     this.body.setLinvel({ x: v.x * 0.25, y: v.y, z: v.z * 0.25 }, true);
+  }
+
+  /** Soft obstacle (snow drift): scrub horizontal speed without crashing. */
+  scrubSpeed(factor: number): void {
+    if (this.state === PlayerState.Crash) return;
+    const v = this.body.linvel();
+    this.body.setLinvel({ x: v.x * factor, y: v.y, z: v.z * factor }, true);
   }
 
   /** Respawn is the only place allowed to hard-set the physics transform. */

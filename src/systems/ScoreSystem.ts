@@ -21,6 +21,11 @@ export class ScoreSystem {
     this.score += CONFIG.score.gateScore;
   }
 
+  /** Flat score gain (e.g. a score pickup); does not affect the combo. */
+  addBonus(points: number): void {
+    this.score += points;
+  }
+
   addTrick(baseScore: number): TrickAward {
     this.tricks += 1;
     this.comboStreak += 1;

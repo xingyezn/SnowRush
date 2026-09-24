@@ -26,6 +26,7 @@ export class PlayerController {
 
   update(dt: number): void {
     const p = CONFIG.player;
+    const maxSpeed = p.maxSpeed * this.player.speedMultiplier;
     const body = this.player.body;
     const velocity = body.linvel();
     const position = body.translation();
@@ -56,7 +57,7 @@ export class PlayerController {
     let speed = Math.hypot(velocity.x, velocity.z);
 
     if (grounded) {
-      const speedRatio = Math.min(speed / p.maxSpeed, 1);
+      const speedRatio = Math.min(speed / maxSpeed, 1);
       const turnFactor =
         p.turnSpeedMinFactor + (p.turnSpeedAtMaxFactor - p.turnSpeedMinFactor) * speedRatio;
       this.player.heading -= turnInput * p.turnSpeed * turnFactor * dt;
@@ -87,7 +88,7 @@ export class PlayerController {
       speed *= Math.pow(p.friction, dt * 60);
       if (brakeInput === 0 && speed < p.minGlideSpeed) speed = p.minGlideSpeed;
       if (speed < 0) speed = 0;
-      if (speed > p.maxSpeed) speed = p.maxSpeed;
+      if (speed > maxSpeed) speed = maxSpeed;
 
       // Velocity tangent to the slope keeps the board glued to the surface.
       let vertical = -((dirX * speed) * n.x + (dirZ * speed) * n.z) / Math.max(n.y, 0.2);
@@ -134,7 +135,7 @@ export class PlayerController {
       dirZ = -Math.cos(this.player.heading);
     }
     speed *= Math.pow(p.airFriction, dt * 60);
-    if (speed > p.maxSpeed) speed = p.maxSpeed;
+    if (speed > maxSpeed) speed = maxSpeed;
 
     body.setLinvel({ x: dirX * speed, y: velocity.y, z: dirZ * speed }, true);
     this.player.state = PlayerState.Airborne;

@@ -1,4 +1,4 @@
-import { CONFIG } from '../core/Config';
+import { getTerrainConfig } from './WorldConfig';
 
 /**
  * Single source of truth for terrain elevation.
@@ -14,7 +14,7 @@ import { CONFIG } from '../core/Config';
  * run meanders instead of running dead straight.
  */
 export function courseCenterX(z: number): number {
-  const t = CONFIG.terrain;
+  const t = getTerrainConfig();
   return (
     t.curveAmp1 * Math.sin(z * t.curveFreq1 + t.curvePhase1) +
     t.curveAmp2 * Math.sin(z * t.curveFreq2 + t.curvePhase2)
@@ -22,7 +22,7 @@ export function courseCenterX(z: number): number {
 }
 
 export function terrainHeight(x: number, z: number): number {
-  const t = CONFIG.terrain;
+  const t = getTerrainConfig();
 
   const base = t.baseSlope * z;
   const largeWave = t.largeWaveAmp * Math.sin(z * t.largeWaveFreq);

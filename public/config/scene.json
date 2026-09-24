@@ -1,0 +1,118 @@
+{
+  "clouds": {
+    "count": 44,
+    "minRadius": 2050,
+    "maxRadius": 5000,
+    "minHeight": -600,
+    "maxHeight": 470,
+    "minScale": 195,
+    "maxScale": 140,
+    "driftSpeed": 0.008
+  },
+  "balloons": {
+    "count": 12,
+    "minRadius": 500,
+    "maxRadius": 550,
+    "minHeight": -200,
+    "maxHeight": 350,
+    "speed": 7,
+    "minScale": 3.8,
+    "maxScale": 2.2
+  },
+  "sun": {
+    "azimuth": 205,
+    "elevation": 4,
+    "distance": 4200,
+    "size": 220
+  },
+  "light": {
+    "sunOffsetX": -200,
+    "sunOffsetY": 210,
+    "sunOffsetZ": -320,
+    "hemiIntensity": 0.72,
+    "sunIntensity": 2.1
+  },
+  "mountains": {
+    "count": 40,
+    "minRadius": 3700,
+    "maxRadius": 4000,
+    "baseY": -1200,
+    "farHeight": 950
+  },
+  "terrain": {
+    "edgeStartOffset": 2,
+    "edgeSteepness": 3,
+    "edgeHeight": 10
+  },
+  "course": {
+    "cliffs": {
+      "scaleMin": 0.8,
+      "scaleMax": 1.6
+    },
+    "finish": {
+      "width": 96,
+      "height": 20
+    },
+    "trees": {
+      "count": 150
+    },
+    "rocks": {
+      "count": 45
+    },
+    "bushes": {
+      "count": 120
+    },
+    "snowpiles": {
+      "count": 60,
+      "visualHeight": 1
+    },
+    "innerCliffs": {
+      "count": 20
+    }
+  },
+  "items": {
+    "count": 46
+  },
+  "characters": {
+    "runer": {
+      "yaw": -1.5707963267948966,
+      "boardOffset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "panda": {
+      "yaw": -1.5707963267948966,
+      "boardOffset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "fox": {
+      "yaw": -1.7278759594743862,
+      "boardOffset": {
+        "x": -0.115,
+        "y": 0.185,
+        "z": 0.075
+      }
+    },
+    "cat": {
+      "yaw": -1.7278759594743862,
+      "boardOffset": {
+        "x": 0.12,
+        "y": -0.005,
+        "z": 0.105
+      }
+    },
+    "hero": {
+      "yaw": -1.7278759594743862,
+      "boardOffset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    }
+  }
+}

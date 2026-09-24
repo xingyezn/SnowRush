@@ -46,6 +46,11 @@ export class Lighting {
     this.sun.target.updateMatrixWorld();
   }
 
+  /** Moves the light direction (used by the admin scene editor). */
+  setOffset(x: number, y: number, z: number): void {
+    this.sunOffset.set(x, y, z);
+  }
+
   /** Quality toggle: disables the sun shadow pass entirely. */
   setShadows(enabled: boolean): void {
     this.sun.castShadow = enabled;

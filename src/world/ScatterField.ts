@@ -17,6 +17,8 @@ export interface ScatterCollider {
   radius: number;
   height?: number;
   offsetY?: number;
+  /** Sensors emit events but apply no physical response (soft obstacles). */
+  sensor?: boolean;
 }
 
 export interface ScatterOptions {
@@ -37,11 +39,15 @@ const UP = new THREE.Vector3(0, 1, 0);
  */
 export class ScatterField {
   readonly placements: ScatterPlacement[];
+  private readonly scene: THREE.Scene;
+  private readonly meshes: THREE.InstancedMesh[] = [];
+  private body: RAPIER.RigidBody | null = null;
 
   constructor(options: ScatterOptions) {
     const { physics, scene, placements, models, collider } = options;
     const castShadow = options.castShadow ?? true;
     this.placements = placements;
+    this.scene = scene;
     if (placements.length === 0 || models.length === 0) return;
 
     const variantOf = placements.map((_, index) => index % models.length);
@@ -59,8 +65,13 @@ export class ScatterField {
       });
     });
 
+    for (const parts of meshes) {
+      for (const mesh of parts) this.meshes.push(mesh);
+    }
+
     const cursors = models.map(() => 0);
     const body = collider ? physics.world.createRigidBody(RAPIER.RigidBodyDesc.fixed()) : null;
+    this.body = body;
 
     const matrix = new THREE.Matrix4();
     const quat = new THREE.Quaternion();
@@ -91,6 +102,7 @@ export class ScatterField {
           .setFriction(0.2)
           .setRestitution(0)
           .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+        if (collider.sensor) desc.setSensor(true);
         physics.createCollider(desc, body, { kind: collider.kind, index });
       }
     });
@@ -101,5 +113,12 @@ export class ScatterField {
         mesh.computeBoundingSphere();
       }
     }
+  }
+
+  /** Removes the instanced meshes; shared model geometry/materials are kept. */
+  dispose(physics: PhysicsWorld): void {
+    if (this.body) physics.world.removeRigidBody(this.body);
+    for (const mesh of this.meshes) this.scene.remove(mesh);
+    this.meshes.length = 0;
   }
 }

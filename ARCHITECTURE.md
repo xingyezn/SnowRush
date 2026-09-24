@@ -321,6 +321,29 @@ PlayerVisual 只读取 Player State。
 
 不要让 Visual 决定 Physics。
 
+角色动画由 `src/player/CharacterAnimator.ts` 承担：
+
+```text
+GameState / PlayerState
+  ↓
+Game 选择 clip（SkiIdle / Jump / Air / Landing / Crash）
+  ↓
+CharacterAnimator（AnimationMixer + CrossFade）
+  ↓
+骨骼姿态
+
+PlayerVisual.tiltGroup（Backflip / Frontflip / Spin / Lean）
+  ↓
+PlayerVisualRoot 旋转
+```
+
+约束：
+
+- CharacterAnimator 只管理 AnimationMixer 与动作切换，不参与物理与世界位移
+- Animation 只负责身体姿态；Backflip / Frontflip / 360–1080 由 `tiltGroup` 程序旋转
+- 所有 Clip 为 In-Place，禁止 Root Motion
+- 动画状态由 Game 的 PlayerState 驱动，动画不得反向决定物理状态
+
 ---
 
 ## 14. TrickSystem.ts
@@ -774,7 +797,13 @@ src/world/ScatterField.ts       通用模型散布（InstancedMesh + 可选碰�
 src/world/CourseGenerator.ts    赛道分段与物件布点
 src/world/{Tree,Rock,Bush,Gate,JumpRamp,Checkpoint,Finish}.ts
 src/ui/{HUD,TrickHUD,StartMenu,PauseMenu,ResultScreen}.ts
+src/player/CharacterAnimator.ts 角色动画状态机（AnimationMixer + CrossFade）
 tools/physics-check.ts          无头回归测试（npm run test:physics）
+tools/build_panda_snowboarder.py 程序化构建熊猫滑雪角色 + 骨骼 + IK + 5 段动画
+tools/prepare_generated_models.py 拆分/归一化生成模型（松树 / 滑雪板）
+tools/rig_fox.py                 为本地 T-pose 狐狸网格绑定骨骼 + 5 段动画
+tools/render_model_previews.py   为 public/models 下每个模型渲染同名预览 PNG
+tools/screenshot.mjs             puppeteer 无头实机截图（npm run screenshot）
 ```
 
 ### 33.2 关键约束：不要依赖 Rapier 射线做地面检测
@@ -840,10 +869,34 @@ tools/physics-check.ts          无头回归测试（npm run test:physics）
 - 资源管线（Phase 8）：`tools/optimize_model.py`（Blender 减面 + 贴图 WebP 压缩）、
   `tools/rig_model.py`（自动脊骨 + Idle 动画）；详见 `docs/ASSET_PIPELINE.md`。
   角色高度/朝向集中在 `Config.player.riderHeight` / `riderYaw`
+- 世界参数化与重建（Phase 9）：`src/world/WorldConfig.ts` 提供「当前」terrain / course 配置
+  （默认 `Config`），世界模块统一读取它；`Game.rebuildWorld()` 先 `dispose()` 各世界模块
+  （移除网格与刚体），再用 `PhysicsWorld.clearWorldBodies()` 清扫，随后用新配置重建——
+  支撑「随机赛道」与「无尽模式」。无尽模式用超长随机赛道（无终点）
+- 道具（Phase 9）：`src/world/Items.ts`（实例化悬浮物 + 传感器，metadata `kind:'item'`）+
+  `src/systems/ItemSystem.ts`（Boost / 加分 / 护盾 / 磁铁 / 滞空 / 无敌，含计时与 HUD 徽章）
+- 体验打磨（Phase 10）：`effects/SnowTrack.ts`（持久雪痕丝带）、
+  `effects/PickupEffect.ts`（拾取扩散环）、`ui/CrashMenu.ts`（摔车三选一菜单）；
+  结算与菜单预览共用 `FollowCamera.showcase`（人物居左、成绩/菜单居右）；
+  开始流程为「角色 → 模式 → 赛道 → 开始」；第一人称显示雪板前端与手套
 - 远山 `MountainBackdrop.update()` 每帧跟随玩家水平坐标，使群山始终保持在远处
 - 模型在 `main.ts` 中先加载完成再构建 `Game`，保证 `CourseGenerator` 可同步实例化
 - 加载失败时 `ModelLibrary` 会退回程序化几何体，游戏仍可运行
 - 静态模型归一化：按材质拆分 geometry group → 合并 → 底部对齐 y=0、XZ 居中、缩放到 `visualHeight`
 - 人物模型不做合并（SkinnedMesh 需保留骨骼），仅缩放/对齐后由 `PlayerVisual` 用
   `AnimationMixer` 播放 Idle / Jump / Death
+- 熊猫滑雪角色（`tools/build_panda_snowboarder.py` → `public/models/panda_snowboarder.glb`）：
+  程序化 Low-poly 网格 + Humanoid 骨骼（含双腿 IK / Board 骨骼）+ 确定性部位权重 +
+  5 段 30FPS In-Place 动画（`SkiIdle / Jump / Air / Landing / Crash`）。当骑手模型包含全部
+  5 段 clip 时，`PlayerVisual` 走 `CharacterAnimator` 路径并隐藏自带程序化雪板；
+  模型朝向为 Three.js `+Z`，故 `ModelLibrary.CHARACTERS` 中该角色 `yaw = Math.PI`
+- 狐狸角色（`tools/rig_fox.py` → `public/models/fox_board_gen.glb`）：把本地生成的 T-pose
+  狐狸网格自动绑定为骑手。按测量比例拟合 Humanoid 骨骼 + 两条尾巴骨骼；骨热蒙皮在该
+  单层生成网格上失败，改用**最近骨骼距离加权**；自动清除右手附近的建模残余碎片；
+  输出 5 段 In-Place 动画。**不自带雪板**，改用生成的 `panda_board_gen.glb`
+  （`RiderAsset.hasBoard` 为 false → `PlayerVisual` 保留游戏板）。可选角色（默认
+  `RUNER`），并采用**侧身站姿**（`yaw = π + STANCE_YAW`）。只要骑手含全部 5 段 clip，
+  游戏侧的 `CharacterAnimator` / `Game` 状态映射无需任何改动即可驱动它
+- 模型预览：`tools/render_model_previews.py` 为 `public/models/` 下每个模型输出同名 PNG；
+  实机截图：`tools/screenshot.mjs`（`puppeteer-core` + 本机 Chrome）
 

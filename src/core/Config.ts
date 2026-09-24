@@ -14,17 +14,18 @@ export const CONFIG = {
     maxPixelRatio: 2,
     cameraNear: 0.1,
     cameraFar: 6000,
-    fogNear: 100,
-    fogFar: 700,
+    /** Kept far so the distant course reads instead of a blank fog band. */
+    fogNear: 350,
+    fogFar: 2400,
   },
 
   mountains: {
-    count: 80,
-    minRadius: 2200,
-    maxRadius: 3600,
+    count: 40,
+    minRadius: 3700,
+    maxRadius: 4000,
     /**
      * Bases sit below the lowest terrain (the course descends to ~-450), so the
-     * cones always close the horizon; otherwise a band of sky shows between the
+     * peaks always close the horizon; otherwise a band of sky shows between the
      * terrain edge and the peaks near the end of the run.
      */
     baseY: -700,
@@ -34,17 +35,52 @@ export const CONFIG = {
     /** Local-Y (0..1) of the snow line and the cap colour. */
     snowLine: 0.5,
     snowColor: 0xfbfdff,
+    /** Loaded far-range asset height (m). Instances keep its aspect ratio. */
+    modelHeight: 900,
+    /** Per-instance height (m); uniform scale keeps the peaks natural-shaped. */
+    farHeight: 900,
   },
 
   clouds: {
-    count: 22,
-    minRadius: 1200,
-    maxRadius: 3200,
-    /** Height above the rider's ground level. */
-    minHeight: 500,
-    maxHeight: 950,
+    count: 40,
+    /** Far + low so they read around the distant peaks' mid-slope. */
+    minRadius: 1400,
+    maxRadius: 3400,
+    /** Height above the rider's ground level (negative = below the ridge). */
+    minHeight: -140,
+    maxHeight: 0,
     driftSpeed: 0.008,
     color: 0xffffff,
+    /** Loaded cloud model height (m); instances scale from this. */
+    modelHeight: 1,
+    minScale: 35,
+    maxScale: 130,
+  },
+
+  balloons: {
+    count: 8,
+    minRadius: 300,
+    maxRadius: 1500,
+    /** Height above the rider's ground level. */
+    minHeight: 110,
+    maxHeight: 360,
+    /** Horizontal drift speed (m/s); they wrap around to keep flying past. */
+    speed: 8,
+    modelHeight: 40,
+    minScale: 1.5,
+    maxScale: 3.0,
+  },
+
+  sun: {
+    /**
+     * Visible disc: azimuth (deg; 0 = +Z/behind, 90 = +X, 180 = -Z/ahead) and
+     * elevation (deg). Kept low so it stays inside the third-person sky band.
+     */
+    azimuth: 205,
+    elevation: 2,
+    distance: 4200,
+    size: 170,
+    modelHeight: 1,
   },
 
   light: {
@@ -55,9 +91,10 @@ export const CONFIG = {
     shadowRadius: 52,
     shadowFar: 600,
     shadowBias: -0.0008,
-    sunOffsetX: 120,
-    sunOffsetY: 220,
-    sunOffsetZ: 90,
+    // Light from ahead-left-up so it agrees with the visible sun's azimuth.
+    sunOffsetX: -200,
+    sunOffsetY: 210,
+    sunOffsetZ: -320,
   },
 
   terrain: {
@@ -74,9 +111,9 @@ export const CONFIG = {
      * rises `edgeSteepness` metres per lateral metre, capped at `edgeHeight`,
      * then continues as a flat shelf to the mesh edge so no void is visible.
      */
-    edgeStartOffset: 4,
-    edgeSteepness: 8,
-    edgeHeight: 45,
+    edgeStartOffset: 2,
+    edgeSteepness: 3,
+    edgeHeight: 10,
     /** Lateral meander of the course centre line (adds turns to the run). */
     curveAmp1: 17,
     curveFreq1: 0.0021,
@@ -85,7 +122,7 @@ export const CONFIG = {
     curveFreq2: 0.0053,
     curvePhase2: 2.1,
     /** dy/dz of the base slope. Larger = steeper descent toward -Z. */
-    baseSlope: 0.3,
+    baseSlope: 0.35,
     largeWaveAmp: 5,
     largeWaveFreq: 0.006,
     crossWaveAmp: 3,
@@ -139,6 +176,17 @@ export const CONFIG = {
       minSpacing: 7,
       visualHeight: 1.5,
     },
+    snowpiles: {
+      count: 60,
+      minSpacing: 9,
+      visualHeight: 1,
+      scaleMin: 0.7,
+      scaleMax: 1.6,
+      /** Soft sensor collider: riding into a drift just scrubs speed. */
+      colliderRadius: 1.2,
+      colliderHeight: 1,
+      slowdownFactor: 0.55,
+    },
     gates: {
       spacing: 60,
       laneOffset: 11,
@@ -149,11 +197,11 @@ export const CONFIG = {
       sensorDepth: 4,
     },
     ramps: {
-      // Angle must exceed the terrain slope (~16.7 deg) or the kicker only
-      // makes the descent shallower instead of launching the rider.
-      width: 14,
-      length: 11,
-      height: 8,
+      // Angle must exceed the terrain slope or the kicker only makes the
+      // descent shallower; kept wide + long so the rider can climb it.
+      width: 18,
+      length: 16,
+      height: 9,
     },
     boundary: {
       postSpacing: 12,
@@ -174,9 +222,22 @@ export const CONFIG = {
       width: 45,
     },
     cliffs: {
-      count: 110,
-      inset: 14,
-      width: 24,
+      count: 150,
+      /** Pushed further out so the walls never clip the corridor/fence. */
+      inset: 24,
+      width: 26,
+      /** Loaded rock-wall height (m) and instance scale range. */
+      visualHeight: 12,
+      scaleMin: 0.8,
+      scaleMax: 1.6,
+    },
+    /** A few rock walls scattered inside the corridor as obstacles. */
+    innerCliffs: {
+      count: 20,
+      minSpacing: 22,
+      scaleMin: 0.5,
+      scaleMax: 1.0,
+      colliderRadius: 3,
     },
     checkpoints: {
       count: 4,
@@ -185,8 +246,9 @@ export const CONFIG = {
       sensorDepth: 8,
     },
     finish: {
-      width: 32,
-      height: 7,
+      /** Arch is scaled uniformly to `height`; invisible walls fill the rest. */
+      width: 90,
+      height: 28,
       sensorDepth: 8,
     },
   },
@@ -229,6 +291,30 @@ export const CONFIG = {
     timeAttackSeconds: 120,
   },
 
+  items: {
+    /** Collectibles per course (scaled up for endless). */
+    count: 46,
+    radius: 0.6,
+    sensorRadius: 1.1,
+    spawnHeight: 1.2,
+    bob: 0.18,
+    spin: 1.6,
+  },
+
+  itemEffects: {
+    /** Seconds and strength for each timed power-up. */
+    boostDuration: 4,
+    boostFactor: 1.4,
+    boostImpulse: 6,
+    scoreValue: 500,
+    shield: true,
+    magnetDuration: 7,
+    magnetRadius: 16,
+    slowmoDuration: 5,
+    slowmoGravity: 0.35,
+    invincibleDuration: 5,
+  },
+
   photo: {
     minDistance: 2.5,
     maxDistance: 14,
@@ -239,7 +325,8 @@ export const CONFIG = {
 
   player: {
     acceleration: 8,
-    maxSpeed: 36,
+    // Top speed ~151 km/h; boost pickups push it past 130.
+    maxSpeed: 42,
     turnSpeed: 1.6,
     turnDrag: 0.04,
     friction: 0.995,
@@ -277,6 +364,10 @@ export const CONFIG = {
     /** Animated rider model: target height and yaw correction (radians). */
     riderHeight: 1.85,
     riderYaw: -Math.PI / 2,
+    /** Skinned character animation: cross-fade time and one-shot windows (s). */
+    animFade: 0.15,
+    jumpAnimWindow: 0.5,
+    landingAnimWindow: 0.45,
     colliderFriction: 0.3,
     density: 1,
     linearDamping: 0,
@@ -291,20 +382,24 @@ export const CONFIG = {
     maxFov: 52,
     minDistance: 2.5,
     maxDistance: 3.0,
-    baseHeight: 1.25,
-    maxHeight: 1.7,
+    baseHeight: 1.5,
+    maxHeight: 2.2,
     positionLerp: 4,
     lookLerp: 8,
     fovLerp: 4,
-    speedForMax: 36,
-    lookAhead: 3.5,
+    speedForMax: 42,
+    lookAhead: 6,
     lookHeight: 0.8,
+    /** How strongly the camera aims down the slope ahead (0..1). */
+    slopePitch: 0.6,
+    /** Cap on how far the aim point may drop below the rider (metres). */
+    slopePitchMaxDrop: 2.5,
     minGroundClearance: 1.2,
     /** Camera occlusion handling: pull in ahead of blockers. */
     occlusionPadding: 0.4,
     minOccludedDistance: 1.4,
-    /** Airborne vertical follow is slower, so jumps get a lag. */
-    jumpLagRate: 2.2,
+    /** Airborne vertical follow rate (higher follows jumps more tightly). */
+    jumpLagRate: 5.5,
     shakeDecay: 6,
     landingShakeScale: 0.16,
     crashShake: 0.5,
@@ -345,7 +440,7 @@ export const CONFIG = {
     slideMaxGain: 0.3,
     carveMaxGain: 0.22,
     minSpeed: 6,
-    maxSpeed: 36,
+    maxSpeed: 42,
     /** Music bus fade time when crossfading menu <-> gameplay. */
     musicFade: 1.4,
   },
@@ -383,6 +478,12 @@ export const CONFIG = {
     rampSide: 0xb8551a,
     snowParticle: 0xffffff,
     finish: 0xf2c14e,
+    itemBoost: 0xff8a3d,
+    itemScore: 0xffd53d,
+    itemShield: 0x3da5ff,
+    itemMagnet: 0xb85cff,
+    itemSlowmo: 0x38e0d8,
+    itemInvincible: 0x4be06a,
     boundaryPost: 0x6b4a2f,
     boundaryRail: 0xd93b3b,
   },

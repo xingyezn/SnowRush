@@ -19,6 +19,9 @@ export class SettingsMenu {
   private readonly fpsEl: HTMLButtonElement;
   private onClose: (() => void) | null = null;
   private visible = false;
+  private onCustomize: (() => void) | null = null;
+  private onLoadModel: ((file: File) => void) | null = null;
+  private onResetCustom: (() => void) | null = null;
 
   constructor(container: HTMLElement) {
     this.root = document.createElement('div');
@@ -77,6 +80,15 @@ export class SettingsMenu {
           <button type="button" class="settings-toggle" data-setting="fps"></button>
         </div>
         <button type="button" class="settings-reset" data-action="reset" data-i18n="settings.reset"></button>
+        <div class="settings-custom">
+          <div class="settings-custom-title">自定义</div>
+          <button type="button" class="settings-custom-btn" data-action="customize">角色位置 / 场景</button>
+          <label class="settings-custom-file">
+            <span>本地人物模型</span>
+            <input type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" data-action="load-model" />
+          </label>
+          <button type="button" class="settings-reset settings-reset--custom" data-action="reset-custom">清除自定义设置</button>
+        </div>
         <button type="button" class="menu-button menu-button--ghost" data-action="close" data-i18n="menu.back"></button>
       </div>
     `;
@@ -146,7 +158,23 @@ export class SettingsMenu {
         resetStats();
         resetAchievements();
       }
+      if ((event.target as HTMLElement).closest('[data-action="customize"]')) {
+        playUiSound('click');
+        this.onCustomize?.();
+      }
+      if ((event.target as HTMLElement).closest('[data-action="reset-custom"]')) {
+        playUiSound('back');
+        this.onResetCustom?.();
+      }
     });
+    this.root
+      .querySelector<HTMLInputElement>('[data-action="load-model"]')
+      ?.addEventListener('change', (event) => {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (file) this.onLoadModel?.(file);
+        input.value = '';
+      });
     window.addEventListener('keydown', (event) => {
       if (this.visible && event.code === 'Escape') this.onClose?.();
     });
@@ -162,6 +190,18 @@ export class SettingsMenu {
     this.sync();
     this.render();
     this.root.classList.add('is-visible');
+  }
+
+  setOnCustomize(handler: () => void): void {
+    this.onCustomize = handler;
+  }
+
+  setOnLoadModel(handler: (file: File) => void): void {
+    this.onLoadModel = handler;
+  }
+
+  setOnResetCustom(handler: () => void): void {
+    this.onResetCustom = handler;
   }
 
   hide(): void {

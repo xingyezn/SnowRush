@@ -1,5 +1,5 @@
-import { CONFIG } from '../core/Config';
 import { terrainHeight } from './TerrainHeight';
+import { getTerrainConfig } from './WorldConfig';
 
 export interface HeightFieldData {
   /** Subdivisions along the z axis. */
@@ -20,7 +20,7 @@ export interface HeightFieldData {
  *   z = (i / nrows - 0.5) * scale.z
  */
 export function buildHeightFieldData(): HeightFieldData {
-  const t = CONFIG.terrain;
+  const t = getTerrainConfig();
   const nrows = t.segmentsZ;
   const ncols = t.segmentsX;
   const scale = { x: t.width, y: 1, z: t.length };

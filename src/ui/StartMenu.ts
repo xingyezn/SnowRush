@@ -7,7 +7,7 @@ import { isTouchDevice } from '../core/Platform';
 import { getSettings, updateSettings, type GameMode } from '../core/Settings';
 import { getDailyObjective, isDailyComplete } from '../core/Daily';
 
-type MenuView = 'main' | 'characters' | 'modes' | 'howto' | 'records' | 'credits';
+type MenuView = 'main' | 'characters' | 'modes' | 'track' | 'howto' | 'records' | 'credits';
 
 type RecordRow = [string, (value: ReturnType<typeof getStats>) => string];
 
@@ -48,6 +48,7 @@ export class StartMenu {
   private hoverTarget: HTMLElement | null = null;
   private characters: CharacterOption[] = [];
   private selectedCharacterId = '';
+  private flowActive = false;
 
   constructor(container: HTMLElement) {
     this.root = document.createElement('div');
@@ -64,6 +65,7 @@ export class StartMenu {
             <button type="button" class="menu-item" data-action="start" data-i18n="menu.start"></button>
             <button type="button" class="menu-item" data-action="characters" data-i18n="menu.characters"></button>
             <button type="button" class="menu-item" data-action="modes" data-i18n="menu.mode"></button>
+            <button type="button" class="menu-item" data-action="track" data-i18n="menu.track"></button>
             <button type="button" class="menu-item" data-action="howto" data-i18n="menu.howto"></button>
             <button type="button" class="menu-item" data-action="records" data-i18n="menu.records"></button>
             <button type="button" class="menu-item" data-action="settings" data-i18n="menu.settings"></button>
@@ -81,6 +83,7 @@ export class StartMenu {
           <div class="character-list"></div>
           <div class="character-name" data-menu="characterName"></div>
           <div class="character-desc" data-menu="characterDesc"></div>
+          <button type="button" class="menu-button" data-action="flow-next" data-flow hidden></button>
           <button type="button" class="menu-button menu-button--ghost" data-action="back" data-i18n="menu.back"></button>
         </div>
 
@@ -96,7 +99,25 @@ export class StartMenu {
             <button type="button" class="mode-option" data-mode="oneline">
               <b data-i18n="mode.oneline"></b><i data-i18n="mode.oneline.desc"></i>
             </button>
+            <button type="button" class="mode-option" data-mode="endless">
+              <b data-i18n="mode.endless"></b><i data-i18n="mode.endless.desc"></i>
+            </button>
           </div>
+          <button type="button" class="menu-button" data-action="flow-next" data-flow hidden></button>
+          <button type="button" class="menu-button menu-button--ghost" data-action="back" data-i18n="menu.back"></button>
+        </div>
+
+        <div class="menu-view" data-view="track" hidden>
+          <h2 class="menu-view-title" data-i18n="menu.track"></h2>
+          <div class="mode-list">
+            <button type="button" class="mode-option" data-track="standard">
+              <b data-i18n="track.standard"></b><i data-i18n="track.standard.desc"></i>
+            </button>
+            <button type="button" class="mode-option" data-track="random">
+              <b data-i18n="track.random"></b><i data-i18n="track.random.desc"></i>
+            </button>
+          </div>
+          <button type="button" class="menu-button" data-action="flow-next" data-flow hidden></button>
           <button type="button" class="menu-button menu-button--ghost" data-action="back" data-i18n="menu.back"></button>
         </div>
 
@@ -140,9 +161,18 @@ export class StartMenu {
 
     this.root.addEventListener('click', (event) => {
       const mode = (event.target as HTMLElement).closest('[data-mode]')?.getAttribute('data-mode');
-      if (mode === 'standard' || mode === 'time' || mode === 'oneline') {
+      if (mode === 'standard' || mode === 'time' || mode === 'oneline' || mode === 'endless') {
         playUiSound('click');
         updateSettings({ mode: mode as GameMode });
+        this.render();
+        return;
+      }
+      const track = (event.target as HTMLElement)
+        .closest('[data-track]')
+        ?.getAttribute('data-track');
+      if (track === 'standard' || track === 'random') {
+        playUiSound('click');
+        updateSettings({ track });
         this.render();
         return;
       }
@@ -247,10 +277,13 @@ export class StartMenu {
     playUiSound(action === 'back' ? 'back' : 'click');
     switch (action) {
       case 'start':
+        // Start immediately with the currently selected character/mode/track.
+        this.flowActive = false;
         this.onStart?.();
         break;
       case 'characters':
       case 'modes':
+      case 'track':
       case 'howto':
       case 'records':
       case 'credits':
@@ -260,6 +293,7 @@ export class StartMenu {
         this.onOpenSettings?.();
         break;
       case 'back':
+        this.flowActive = false;
         this.setView('main');
         break;
       case 'lang':
@@ -294,13 +328,24 @@ export class StartMenu {
     }
     if (view === 'records') this.renderRecords();
     if (view === 'characters') this.renderCharacters();
+    this.updateFlowButtons();
     this.setFocus(0);
+  }
+
+  private updateFlowButtons(): void {
+    for (const el of this.root.querySelectorAll('[data-flow]')) {
+      const button = el as HTMLButtonElement;
+      button.hidden = !this.flowActive;
+      if (this.flowActive) {
+        button.textContent = this.view === 'track' ? t('menu.start') : t('menu.next');
+      }
+    }
   }
 
   private focusable(): HTMLButtonElement[] {
     const active = this.root.querySelector(`.menu-view[data-view="${this.view}"]`);
     if (!active) return [];
-    return Array.from(active.querySelectorAll('button'));
+    return Array.from(active.querySelectorAll('button')).filter((button) => !button.hidden);
   }
 
   private setFocus(index: number): void {
@@ -347,6 +392,7 @@ export class StartMenu {
       ).join('');
     }
     this.renderCharacters();
+    this.updateFlowButtons();
     if (this.view === 'records') this.renderRecords();
 
     const objective = getDailyObjective();
@@ -356,6 +402,12 @@ export class StartMenu {
     }`;
     for (const button of this.root.querySelectorAll('[data-mode]')) {
       button.classList.toggle('is-selected', button.getAttribute('data-mode') === getSettings().mode);
+    }
+    for (const button of this.root.querySelectorAll('[data-track]')) {
+      button.classList.toggle(
+        'is-selected',
+        button.getAttribute('data-track') === getSettings().track,
+      );
     }
   }
 

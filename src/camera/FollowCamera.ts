@@ -88,10 +88,14 @@ export class FollowCamera {
     }
     if (lift > 0) this.desiredPosition.y += lift;
 
-    this.desiredTarget.copy(playerPosition);
-    this.desiredTarget.x += -Math.sin(heading) * c.lookAhead;
-    this.desiredTarget.z += -Math.cos(heading) * c.lookAhead;
-    this.desiredTarget.y += c.lookHeight;
+    // Aim down the slope ahead so the descent reads as a tilt, not a flat plane.
+    const aheadX = playerPosition.x - Math.sin(heading) * c.lookAhead;
+    const aheadZ = playerPosition.z - Math.cos(heading) * c.lookAhead;
+    const aheadGround = terrainHeight(aheadX, aheadZ);
+    // Clamp the downward aim so a big jump does not push the rider off the top
+    // of the screen (the ground "ahead" can be far below while airborne).
+    const drop = Math.max(aheadGround - playerPosition.y, -c.slopePitchMaxDrop);
+    this.desiredTarget.set(aheadX, playerPosition.y + c.lookHeight + drop * c.slopePitch, aheadZ);
 
     if (!this.initialized) {
       this.camera.position.copy(this.desiredPosition);
@@ -196,11 +200,9 @@ export class FollowCamera {
 
     this.camera.position.set(camX, camY, camZ);
     this.camera.up.set(0, 1, 0);
-    this.camera.lookAt(
-      camX + forwardX * 12,
-      camY + c.lookHeight * 0.4 - 0.1,
-      camZ + forwardZ * 12,
-    );
+    const fpAheadGround = terrainHeight(camX + forwardX * 10, camZ + forwardZ * 10);
+    const fpDrop = Math.max(fpAheadGround - camY, -c.slopePitchMaxDrop);
+    this.camera.lookAt(camX + forwardX * 12, camY - 0.1 + fpDrop * c.slopePitch, camZ + forwardZ * 12);
 
     const t = THREE.MathUtils.clamp(speed / c.speedForMax, 0, 1);
     const targetFov = THREE.MathUtils.lerp(fp.fovBase, fp.fovMax, t);

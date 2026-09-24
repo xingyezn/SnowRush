@@ -14,11 +14,11 @@ export class HUD {
   private readonly hintEl: HTMLDivElement;
   private readonly scoreLabel: HTMLSpanElement;
   private readonly timeLabel: HTMLSpanElement;
-  private readonly pauseButton: HTMLButtonElement;
   private readonly progressFill: HTMLDivElement;
   private readonly toastEl: HTMLDivElement;
   private readonly fpsEl: HTMLDivElement;
   private readonly modeEl: HTMLDivElement;
+  private readonly effectsEl: HTMLDivElement;
   private hintTimer = 0;
   private toastTimer = 0;
   private messageTimer = 0;
@@ -28,7 +28,6 @@ export class HUD {
     this.root.id = 'hud';
     this.root.innerHTML = `
       <div class="hud-message"></div>
-      <button type="button" class="hud-pause" aria-label="Pause"><span></span><span></span></button>
       <div class="hud-score">
         <span class="hud-label" data-label="score"></span>
         <span class="hud-score-value">0</span>
@@ -46,6 +45,7 @@ export class HUD {
       <div class="hud-toast"></div>
       <div class="hud-fps" hidden></div>
       <div class="hud-mode" hidden></div>
+      <div class="hud-effects"></div>
     `;
     container.appendChild(this.root);
 
@@ -56,11 +56,11 @@ export class HUD {
     this.hintEl = this.root.querySelector('.hud-hint') as HTMLDivElement;
     this.scoreLabel = this.root.querySelector('[data-label="score"]') as HTMLSpanElement;
     this.timeLabel = this.root.querySelector('[data-label="time"]') as HTMLSpanElement;
-    this.pauseButton = this.root.querySelector('.hud-pause') as HTMLButtonElement;
     this.progressFill = this.root.querySelector('.hud-progress-fill') as HTMLDivElement;
     this.toastEl = this.root.querySelector('.hud-toast') as HTMLDivElement;
     this.fpsEl = this.root.querySelector('.hud-fps') as HTMLDivElement;
     this.modeEl = this.root.querySelector('.hud-mode') as HTMLDivElement;
+    this.effectsEl = this.root.querySelector('.hud-effects') as HTMLDivElement;
 
     this.render();
     onLanguageChange(() => this.render());
@@ -78,10 +78,6 @@ export class HUD {
   }
 
   /** Registers the on-screen pause button handler. */
-  onPause(callback: () => void): void {
-    this.pauseButton.addEventListener('click', callback);
-  }
-
   /** Shows the controls hint and fades it out after a few seconds. */
   showHint(): void {
     this.hintEl.classList.remove('is-hidden');
@@ -135,6 +131,16 @@ export class HUD {
   setMode(text: string | null): void {
     this.modeEl.hidden = !text;
     if (text) this.modeEl.textContent = text;
+  }
+
+  /** Active pickup effects as small badges (name + remaining seconds). */
+  setEffects(effects: ReadonlyArray<{ name: string; remaining: number }>): void {
+    this.effectsEl.innerHTML = effects
+      .map((effect) => {
+        const timer = Number.isFinite(effect.remaining) ? ` ${Math.ceil(effect.remaining)}` : '';
+        return `<span class="hud-effect">${t(`item.${effect.name}`)}${timer}</span>`;
+      })
+      .join('');
   }
 
   /** FPS readout; hidden unless the settings toggle is on. */

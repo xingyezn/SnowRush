@@ -6,6 +6,9 @@ export interface CollisionHandlers {
   onGate(index: number): void;
   onCheckpoint(index: number): void;
   onFinish(): void;
+  onItem(index: number): void;
+  /** Soft obstacle: handled without ending the run. */
+  onSnowpile(): void;
 }
 
 /**
@@ -39,6 +42,7 @@ export class CollisionSystem {
       switch (other.kind) {
         case 'tree':
         case 'rock':
+        case 'cliff':
           this.handlers.onCrash();
           break;
         case 'gate': {
@@ -59,6 +63,12 @@ export class CollisionSystem {
         }
         case 'finish':
           this.handlers.onFinish();
+          break;
+        case 'item':
+          this.handlers.onItem(other.index);
+          break;
+        case 'snowpile':
+          this.handlers.onSnowpile();
           break;
         default:
           break;

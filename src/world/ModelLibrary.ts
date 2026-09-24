@@ -3,6 +3,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CONFIG } from '../core/Config';
+import { getCharacterOverride } from '../core/SceneOverrides';
 
 export interface ModelPart {
   geometry: THREE.BufferGeometry;
@@ -21,6 +22,13 @@ export interface RiderAsset {
   container: THREE.Group;
   animations: THREE.AnimationClip[];
   height: number;
+  /** True when the model ships its own snowboard (hides the game board). */
+  hasBoard: boolean;
+}
+
+/** Player snowboard, authored flat: deck base at y = 0, length along Z. */
+export interface BoardAsset {
+  object: THREE.Object3D;
 }
 
 /** A selectable rider on the start menu. */
@@ -30,39 +38,104 @@ export interface CharacterOption {
   rider: RiderAsset | null;
   /** Yaw correction applied by PlayerVisual (model forward vs. game forward). */
   yaw: number;
+  /** Fine placement on the board (metres, board-local: z = length, y = up). */
+  boardOffset: { x: number; y: number; z: number };
 }
 
 export interface ModelLibrary {
   trees: ModelAsset[];
   rocks: ModelAsset[];
   bushes: ModelAsset[];
+  cliffs: ModelAsset[];
+  snowpiles: ModelAsset[];
+  clouds: ModelAsset[];
+  fences: ModelAsset[];
+  ramps: ModelAsset[];
+  balloons: ModelAsset[];
   characters: CharacterOption[];
+  board: BoardAsset | null;
+  mountainFar: ModelAsset | null;
+  sun: ModelAsset | null;
+  finishArch: ModelAsset | null;
 }
 
-// Detailed CC0 Quaternius pines (higher-poly than the old pack) plus one
-// flat-shaded snow-capped pine for variety.
+// The owner's generated, split + scaled models (tools/prepare_generated_batch.py).
+// The earlier CC0 / pine assets are kept on disk but no longer referenced.
 const TREE_URLS = [
-  'models/pine_quat_a.glb',
-  'models/pine_quat_b.glb',
-  'models/pine_quat_a.glb',
-  'models/pine_quat_snow.glb',
+  'models/tree_gen_a.glb',
+  'models/tree_gen_b.glb',
+  'models/tree_gen_c.glb',
+  'models/tree_gen_d.glb',
 ];
-const ROCK_URLS = [
-  'models/rock_quat_a.glb',
-  'models/rock_quat_b.glb',
-  'models/rock_quat_c.glb',
-  'models/rock_quat_snow.glb',
+const ROCK_URLS = ['models/rock_gen_a.glb', 'models/rock_gen_b.glb', 'models/rock_gen_c.glb'];
+// Grass replaces the old bushes.
+const BUSH_URLS = [
+  'models/grass_gen_a.glb',
+  'models/grass_gen_b.glb',
+  'models/grass_gen_c.glb',
+  'models/grass_gen_d.glb',
+  'models/grass_gen_e.glb',
+  'models/grass_gen_f.glb',
+  'models/grass_gen_g.glb',
 ];
-const BUSH_URLS = ['models/bush1.fbx', 'models/bush2.fbx', 'models/bush3.fbx'];
+const CLIFF_URLS = ['models/cliff_gen_a.glb', 'models/cliff_gen_b.glb', 'models/cliff_gen_c.glb'];
+const FENCE_URLS = [
+  'models/fence_gen_a.glb',
+  'models/fence_gen_b.glb',
+  'models/fence_gen_c.glb',
+  'models/fence_gen_d.glb',
+];
+const SNOWPILE_URLS = [
+  'models/snowpile_gen_a.glb',
+  'models/snowpile_gen_b.glb',
+  'models/snowpile_gen_c.glb',
+  'models/snowpile_gen_d.glb',
+];
+const CLOUD_URLS = ['models/cloud_gen_a.glb', 'models/cloud_gen_b.glb', 'models/cloud_gen_c.glb'];
+const RAMP_URLS = ['models/ramp_gen_a.glb', 'models/ramp_gen_b.glb'];
+const BALLOON_URLS = [
+  'models/balloon_gen_a.glb',
+  'models/balloon_gen_b.glb',
+  'models/balloon_gen_c.glb',
+  'models/balloon_gen_d.glb',
+];
+const MOUNTAIN_FAR_URL = 'models/mountain_far_gen.glb';
+const SUN_URL = 'models/sun_gen.glb';
+const FINISH_ARCH_URL = 'models/finish_arch_gen.glb';
+const BOARD_URL = 'models/panda_board_gen.glb';
 
 /**
  * Selectable riders. These are the project owner's GLB models, decimated and
  * auto-rigged (simple "Idle" sway) in Blender. See public/models/LICENSE.txt.
  */
-const CHARACTERS = [
-  { id: 'runer', name: 'RUNER', url: 'models/runer.glb' },
-  { id: 'panda', name: 'PANDA', url: 'models/panda.glb' },
-] as const;
+interface CharacterDef {
+  id: string;
+  name: string;
+  url: string;
+  yaw: number;
+  /** True when the model includes its own snowboard. */
+  ownBoard?: boolean;
+  /** Nudge the rider on the board (board-local metres: z = length, y = up). */
+  boardOffset?: { x?: number; y?: number; z?: number };
+}
+
+// Snowboarders stand side-on across the board instead of facing straight down
+// the hill, so the generated riders get this extra yaw on top of the +Z fix.
+const STANCE_YAW = Math.PI * 0.45;
+
+const CHARACTERS: CharacterDef[] = [
+  { id: 'runer', name: 'RUNER', url: 'models/runer.glb', yaw: CONFIG.player.riderYaw },
+  { id: 'panda', name: 'PANDA', url: 'models/panda.glb', yaw: CONFIG.player.riderYaw },
+  // Generated riders: model forward is +Z, turned side-on to the board
+  // (yaw = STANCE_YAW − π). Offsets tuned with the admin panel (?admin=1).
+  { id: 'fox', name: 'FOX', url: 'models/fox_board_gen.glb', yaw: STANCE_YAW - Math.PI, boardOffset: { x: -0.115, y: 0.185, z: 0.075 } },
+  { id: 'cat', name: 'CAT', url: 'models/rider_cat_rigged.glb', yaw: STANCE_YAW - Math.PI, boardOffset: { x: 0.12, y: -0.005, z: 0.105 } },
+  // Rigged FBX character (own skeleton + clip): forward is +Z, yaw = π + stance.
+  { id: 'hero', name: 'HERO', url: 'models/rider_hero_rigged.glb', yaw: STANCE_YAW - Math.PI },
+  // Procedural panda snowboarder is currently hidden (ugly). The asset, the
+  // build script and CharacterAnimator are kept; uncomment to bring it back.
+  // { id: 'panda_boarder', name: 'PANDA BOARDER', url: 'models/panda_snowboarder.glb', yaw: Math.PI, ownBoard: true },
+];
 
 interface MeshLike {
   isMesh?: boolean;
@@ -245,27 +318,42 @@ function applySnowDusting(material: THREE.Material, coverage: number, amount: nu
   target.needsUpdate = true;
 }
 
+/** Loads one model, falling back to a primitive cone if the file is missing. */
+async function loadAsset(url: string, targetHeight: number, fallbackColor: number): Promise<ModelAsset> {
+  try {
+    const { object } = await loadObject(url);
+    return normalise(object, targetHeight);
+  } catch (error) {
+    console.warn(`SnowRush: could not load ${url}, using fallback`, error);
+    return fallbackAsset(fallbackColor, targetHeight);
+  }
+}
+
+/** Loads one model, returning null on failure so callers can use their own fallback. */
+async function loadOptionalAsset(url: string, targetHeight: number): Promise<ModelAsset | null> {
+  try {
+    const { object } = await loadObject(url);
+    return normalise(object, targetHeight);
+  } catch (error) {
+    console.warn(`SnowRush: could not load ${url}`, error);
+    return null;
+  }
+}
+
 async function loadGroup(
   urls: string[],
   targetHeight: number,
   fallbackColor: number,
 ): Promise<ModelAsset[]> {
-  const assets: ModelAsset[] = [];
-  for (const url of urls) {
-    try {
-      const { object } = await loadObject(url);
-      const asset = normalise(object, targetHeight);
-      assets.push(asset);
-    } catch (error) {
-      console.warn(`SnowRush: could not load ${url}, using fallback`, error);
-      assets.push(fallbackAsset(fallbackColor, targetHeight));
-    }
-  }
-  return assets;
+  return Promise.all(urls.map((url) => loadAsset(url, targetHeight, fallbackColor)));
 }
 
 /** Scales a rider to CONFIG.player.riderHeight and aligns its feet to y = 0. */
-function buildRider(object: THREE.Object3D, animations: THREE.AnimationClip[]): RiderAsset {
+function buildRider(
+  object: THREE.Object3D,
+  animations: THREE.AnimationClip[],
+  hasBoard: boolean,
+): RiderAsset {
   object.updateMatrixWorld(true);
 
   const bounds = new THREE.Box3().setFromObject(object);
@@ -285,7 +373,7 @@ function buildRider(object: THREE.Object3D, animations: THREE.AnimationClip[]): 
   container.position.y = -bounds.min.y * scale;
   container.add(object);
 
-  return { container, animations, height: CONFIG.player.riderHeight };
+  return { container, animations, height: CONFIG.player.riderHeight, hasBoard };
 }
 
 /** Loads every selectable rider (missing files fall back to the primitive). */
@@ -294,19 +382,52 @@ async function loadCharacters(): Promise<CharacterOption[]> {
     CHARACTERS.map(async (def): Promise<CharacterOption> => {
       try {
         const { object, animations } = await loadObject(def.url);
+        const override = getCharacterOverride(def.id);
         return {
           id: def.id,
           name: def.name,
-          rider: buildRider(object, animations),
-          yaw: CONFIG.player.riderYaw,
+          rider: buildRider(object, animations, def.ownBoard ?? false),
+          yaw: override?.yaw ?? def.yaw,
+          boardOffset: override?.boardOffset ?? {
+            x: def.boardOffset?.x ?? 0,
+            y: def.boardOffset?.y ?? 0,
+            z: def.boardOffset?.z ?? 0,
+          },
         };
       } catch (error) {
         console.warn(`SnowRush: could not load ${def.url}`, error);
-        return { id: def.id, name: def.name, rider: null, yaw: CONFIG.player.riderYaw };
+        return {
+          id: def.id,
+          name: def.name,
+          rider: null,
+          yaw: def.yaw,
+          boardOffset: { x: 0, y: 0, z: 0 },
+        };
       }
     }),
   );
   return options;
+}
+
+/** Loads a player-imported character (object URL) into a RiderAsset. */
+export async function loadRiderFromUrl(url: string): Promise<RiderAsset | null> {
+  try {
+    const { object, animations } = await loadObject(url);
+    return buildRider(object, animations, false);
+  } catch (error) {
+    console.warn('SnowRush: could not load the local rider model', error);
+    return null;
+  }
+}
+
+/** Loads the player's snowboard; null keeps PlayerVisual's primitive board. */
+async function loadBoard(): Promise<BoardAsset | null> {  try {
+    const { object } = await loadObject(BOARD_URL);
+    return { object };
+  } catch (error) {
+    console.warn(`SnowRush: could not load ${BOARD_URL}`, error);
+    return null;
+  }
 }
 
 /** Model library built from primitives; used by headless tests and as a fallback. */
@@ -315,25 +436,59 @@ export function createFallbackLibrary(): ModelLibrary {
     trees: [fallbackAsset(CONFIG.colors.treeFoliage, CONFIG.course.trees.visualHeight)],
     rocks: [fallbackAsset(CONFIG.colors.rock, CONFIG.course.rocks.visualHeight)],
     bushes: [fallbackAsset(CONFIG.colors.treeFoliage, CONFIG.course.bushes.visualHeight)],
+    cliffs: [fallbackAsset(CONFIG.colors.rock, CONFIG.course.cliffs.visualHeight)],
+    snowpiles: [fallbackAsset(0xf3f8ff, CONFIG.course.snowpiles.visualHeight)],
+    clouds: [],
+    fences: [],
+    ramps: [],
+    balloons: [],
     characters: [],
+    board: null,
+    mountainFar: null,
+    sun: null,
+    finishArch: null,
   };
 }
 
-/** Loads all CC0 models (see public/models/LICENSE.txt). FBX or GLB. */
+/** Loads all generated models (see public/models/LICENSE.txt). FBX or GLB. */
 export async function loadModelLibrary(): Promise<ModelLibrary> {
-  const [trees, rocks, bushes, characters] = await Promise.all([
-    // Textured pines keep their baked colours (no tint).
-    loadGroup(TREE_URLS, CONFIG.course.trees.visualHeight, CONFIG.colors.treeFoliage),
-    // Keep the models' own colours so the snow-capped rock stays white.
-    loadGroup(ROCK_URLS, CONFIG.course.rocks.visualHeight, CONFIG.colors.rock),
-    loadGroup(BUSH_URLS, CONFIG.course.bushes.visualHeight, CONFIG.colors.treeFoliage),
-    loadCharacters(),
-  ]);
+  const [trees, rocks, bushes, cliffs, snowpiles, clouds, fences, ramps, balloons, characters, board, mountainFar, sun, finishArch] =
+    await Promise.all([
+      loadGroup(TREE_URLS, CONFIG.course.trees.visualHeight, CONFIG.colors.treeFoliage),
+      loadGroup(ROCK_URLS, CONFIG.course.rocks.visualHeight, CONFIG.colors.rock),
+      loadGroup(BUSH_URLS, CONFIG.course.bushes.visualHeight, CONFIG.colors.treeFoliage),
+      loadGroup(CLIFF_URLS, CONFIG.course.cliffs.visualHeight, CONFIG.colors.rock),
+      loadGroup(SNOWPILE_URLS, CONFIG.course.snowpiles.visualHeight, 0xf3f8ff),
+      loadGroup(CLOUD_URLS, CONFIG.clouds.modelHeight, CONFIG.clouds.color),
+      loadGroup(FENCE_URLS, CONFIG.course.boundary.postHeight, CONFIG.colors.boundaryPost),
+      loadGroup(RAMP_URLS, CONFIG.course.ramps.height, CONFIG.colors.ramp),
+      loadGroup(BALLOON_URLS, CONFIG.balloons.modelHeight, 0xff5a4a),
+      loadCharacters(),
+      loadBoard(),
+      loadOptionalAsset(MOUNTAIN_FAR_URL, CONFIG.mountains.modelHeight),
+      loadOptionalAsset(SUN_URL, CONFIG.sun.modelHeight),
+      loadOptionalAsset(FINISH_ARCH_URL, CONFIG.course.finish.height),
+    ]);
 
   const { snowCoverage, snowAmount } = CONFIG.course.trees;
   for (const tree of trees) {
     for (const part of tree.parts) applySnowDusting(part.material, snowCoverage, snowAmount);
   }
 
-  return { trees, rocks, bushes, characters };
+  return {
+    trees,
+    rocks,
+    bushes,
+    cliffs,
+    snowpiles,
+    clouds,
+    fences,
+    ramps,
+    balloons,
+    characters,
+    board,
+    mountainFar,
+    sun,
+    finishArch,
+  };
 }

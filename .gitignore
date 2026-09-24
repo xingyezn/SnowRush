@@ -4,6 +4,11 @@ dist-ssr
 tools/out
 *.local
 
+# Owner's raw source assets (~600 MB) kept locally, not in the repo.
+本地资源素材/
+# Generated model preview images (dev-only; see tools/render_model_previews.py)
+public/models/*.png
+
 # Redundant archive; docs are tracked directly (README/PRODUCT_SPEC/ARCHITECTURE/TASKS/AGENTS)
 SnowRush_Project_Docs.zip
 

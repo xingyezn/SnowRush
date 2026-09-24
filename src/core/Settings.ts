@@ -1,8 +1,9 @@
 import { CONFIG } from './Config';
 
 export type QualityLevel = 'auto' | 'high' | 'low';
-export type GameMode = 'standard' | 'time' | 'oneline';
+export type GameMode = 'standard' | 'time' | 'oneline' | 'endless';
 export type ViewMode = 'third' | 'first';
+export type TrackMode = 'standard' | 'random';
 
 export interface GameSettings {
   /** Master volume, 0..1. */
@@ -22,6 +23,8 @@ export interface GameSettings {
   mode: GameMode;
   /** Camera: third-person chase or first-person. */
   view: ViewMode;
+  /** Track: the fixed course or a fresh random one each run. */
+  track: TrackMode;
 }
 
 const STORAGE_KEY = 'SnowRush.settings';
@@ -37,6 +40,7 @@ const DEFAULTS: GameSettings = {
   showFps: false,
   mode: 'standard',
   view: 'third',
+  track: 'standard',
 };
 
 const clamp01 = (value: unknown, fallback: number): number =>
@@ -60,10 +64,14 @@ function load(): GameSettings {
           : DEFAULTS.quality,
       showFps: typeof parsed.showFps === 'boolean' ? parsed.showFps : DEFAULTS.showFps,
       mode:
-        parsed.mode === 'time' || parsed.mode === 'oneline' || parsed.mode === 'standard'
+        parsed.mode === 'time' ||
+        parsed.mode === 'oneline' ||
+        parsed.mode === 'endless' ||
+        parsed.mode === 'standard'
           ? parsed.mode
           : DEFAULTS.mode,
       view: parsed.view === 'first' || parsed.view === 'third' ? parsed.view : DEFAULTS.view,
+      track: parsed.track === 'random' || parsed.track === 'standard' ? parsed.track : DEFAULTS.track,
     };
   } catch {
     return { ...DEFAULTS };

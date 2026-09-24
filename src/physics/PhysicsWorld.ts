@@ -7,7 +7,10 @@ export type ColliderKind =
   | 'gate'
   | 'ramp'
   | 'checkpoint'
-  | 'finish';
+  | 'finish'
+  | 'item'
+  | 'snowpile'
+  | 'cliff';
 
 export interface ColliderMetadata {
   kind: ColliderKind;
@@ -25,6 +28,7 @@ export class PhysicsWorld {
 
   private readonly events = new RAPIER.EventQueue(true);
   private readonly metadata = new Map<number, ColliderMetadata>();
+  private readonly persistent = new Set<number>();
 
   constructor(gravity: number) {
     this.world = new RAPIER.World({ x: 0, y: -gravity, z: 0 });
@@ -44,8 +48,31 @@ export class PhysicsWorld {
     meta?: ColliderMetadata,
   ): RAPIER.Collider {
     const collider = this.world.createCollider(desc, body);
-    if (meta) this.metadata.set(collider.handle, meta);
+    if (meta) {
+      this.metadata.set(collider.handle, meta);
+      if (meta.kind === 'player') this.persistent.add(collider.handle);
+    }
     return collider;
+  }
+
+  /**
+   * Removes every world body except `keep` (the player) and resets collider
+   * metadata to the persistent (player) entries. Used to rebuild the course.
+   */
+  clearWorldBodies(keep: RAPIER.RigidBody): void {
+    const remove: RAPIER.RigidBody[] = [];
+    this.world.forEachRigidBody((body) => {
+      if (body !== keep) remove.push(body);
+    });
+    for (const body of remove) this.world.removeRigidBody(body);
+
+    const keepMeta = new Map<number, ColliderMetadata>();
+    for (const handle of this.persistent) {
+      const meta = this.metadata.get(handle);
+      if (meta) keepMeta.set(handle, meta);
+    }
+    this.metadata.clear();
+    for (const [handle, meta] of keepMeta) this.metadata.set(handle, meta);
   }
 
   getMetadata(handle: number): ColliderMetadata | undefined {

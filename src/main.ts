@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import './styles/game.css';
 import { Game } from './core/Game';
+import { loadSceneOverrides } from './core/SceneOverrides';
+import { loadPlayerConfig } from './core/PlayerConfig';
 import { loadModelLibrary } from './world/ModelLibrary';
 import { t } from './ui/I18n';
 
@@ -32,6 +34,11 @@ THREE.DefaultLoadingManager.onProgress = (_url, loaded, total) => {
   if (fill) fill.style.width = `${pct}%`;
   if (percentEl) percentEl.textContent = `${pct}%`;
 };
+
+// Apply saved scene tuning before anything reads Config (model scaling etc.).
+// Player (browser) customisation overrides the shipped JSON on top.
+await loadSceneOverrides();
+loadPlayerConfig();
 
 const models = await loadModelLibrary();
 

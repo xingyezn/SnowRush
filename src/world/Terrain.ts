@@ -4,6 +4,7 @@ import { CONFIG } from '../core/Config';
 import type { PhysicsWorld } from '../physics/PhysicsWorld';
 import { buildHeightFieldData } from './HeightFieldData';
 import { terrainHeight, terrainNormalComponents } from './TerrainHeight';
+import { getTerrainConfig } from './WorldConfig';
 
 /**
  * Procedural snow terrain.
@@ -14,9 +15,12 @@ export class Terrain {
   readonly mesh: THREE.Mesh;
 
   private readonly body: RAPIER.RigidBody;
+  private readonly scene: THREE.Scene;
+  private readonly material: THREE.MeshStandardMaterial;
 
   constructor(physics: PhysicsWorld, scene: THREE.Scene) {
-    const t = CONFIG.terrain;
+    this.scene = scene;
+    const t = getTerrainConfig();
 
     const geometry = new THREE.PlaneGeometry(t.width, t.length, t.segmentsX, t.segmentsZ);
     geometry.rotateX(-Math.PI / 2);
@@ -50,6 +54,7 @@ export class Terrain {
       metalness: 0,
       flatShading: true,
     });
+    this.material = material;
 
     this.mesh = new THREE.Mesh(geometry, material);
     this.mesh.name = 'terrain';
@@ -62,5 +67,13 @@ export class Terrain {
       .setFriction(t.friction)
       .setRestitution(0);
     physics.createCollider(collider, this.body);
+  }
+
+  /** Removes the mesh + collider so the terrain can be regenerated. */
+  dispose(physics: PhysicsWorld): void {
+    physics.world.removeRigidBody(this.body);
+    this.scene.remove(this.mesh);
+    this.mesh.geometry.dispose();
+    this.material.dispose();
   }
 }

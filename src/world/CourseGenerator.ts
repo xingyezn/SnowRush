@@ -6,12 +6,14 @@ import { createBushField } from './Bush';
 import { CheckpointField, type CheckpointPlacement } from './Checkpoint';
 import { FinishArea } from './Finish';
 import { GateField, type GatePlacement } from './Gate';
+import { ItemField, ITEM_TYPES, type ItemPlacement, type ItemType } from './Items';
 import { JumpRampField, type RampPlacement } from './JumpRamp';
 import type { ModelLibrary } from './ModelLibrary';
 import { createRockField } from './Rock';
 import { ScatterField, type ScatterPlacement } from './ScatterField';
 import { createTreeField } from './Tree';
 import { courseCenterX, terrainHeight } from './TerrainHeight';
+import { getCourseConfig, getTerrainConfig, getWorldExtras } from './WorldConfig';
 
 /** Vertical cylinder used for analytic camera occlusion (trees / rocks). */
 export interface Occluder {
@@ -35,24 +37,33 @@ interface ZRange {
 /**
  * Builds the course from ordered sections and spawns world objects.
  * All placements are deterministic (seeded Rng) and use terrainHeight so
- * objects sit on the ground.
+ * objects sit on the ground. Sections can be tiled for endless runs.
  */
 export class CourseGenerator {
   readonly trees: ScatterField;
   readonly rocks: ScatterField;
   readonly bushes: ScatterField;
   readonly forest: ScatterField;
-  readonly cliffs: ScatterField;
+  cliffs: ScatterField;
+  readonly cliffsInner: ScatterField | null;
+  readonly snowpiles: ScatterField | null;
   readonly gates: GateField;
   readonly ramps: JumpRampField;
   readonly checkpoints: CheckpointField;
-  readonly finish: FinishArea;
+  readonly items: ItemField | null;
+  readonly finish: FinishArea | null;
   readonly occluders: Occluder[];
   readonly startZ: number;
 
+  private readonly scene: THREE.Scene;
+  private readonly cliffPlacements: ScatterPlacement[];
+
   constructor(physics: PhysicsWorld, scene: THREE.Scene, models: ModelLibrary) {
-    const c = CONFIG.course;
-    const t = CONFIG.terrain;
+    this.scene = scene;
+    const c = getCourseConfig();
+    const t = getTerrainConfig();
+    const extras = getWorldExtras();
+    const repeats = Math.max(1, extras.repeats);
     const rng = new Rng(c.seed);
 
     const halfWidth = t.playWidth / 2;
@@ -69,25 +80,34 @@ export class CourseGenerator {
       return range;
     };
 
-    const intro = take(c.sections.intro);
-    const treesSection = take(c.sections.trees);
-    const slalom = take(c.sections.slalom);
-    const jump = take(c.sections.jump);
-    const highSpeed = take(c.sections.highSpeed);
-    const bigJump = take(c.sections.bigJump);
-    const finishSection = take(c.sections.finish);
-    void intro;
+    const treesRanges: ZRange[] = [];
+    const slalomRanges: ZRange[] = [];
+    const jumpRanges: ZRange[] = [];
+    const bigJumpRanges: ZRange[] = [];
+    const highSpeedRanges: ZRange[] = [];
+    const confirmRanges: ZRange[] = [];
+    for (let r = 0; r < repeats; r++) {
+      take(c.sections.intro);
+      treesRanges.push(take(c.sections.trees));
+      slalomRanges.push(take(c.sections.slalom));
+      jumpRanges.push(take(c.sections.jump));
+      highSpeedRanges.push(take(c.sections.highSpeed));
+      bigJumpRanges.push(take(c.sections.bigJump));
+      confirmRanges.push(take(c.sections.finish));
+    }
 
     const reserved: Point[] = [];
 
     // --- Gates (slalom): alternate left / right lanes ------------------------
     const gatePlacements: GatePlacement[] = [];
-    const gateCount = Math.floor((slalom.zStart - slalom.zEnd) / c.gates.spacing);
-    for (let i = 0; i < gateCount; i++) {
-      const z = slalom.zStart - c.gates.spacing * (i + 0.5);
-      const x = centerAt(z) + (i % 2 === 0 ? -1 : 1) * c.gates.laneOffset + rng.range(-2, 2);
-      gatePlacements.push({ x, z });
-      reserved.push({ x, z });
+    for (const slalom of slalomRanges) {
+      const gateCount = Math.floor((slalom.zStart - slalom.zEnd) / c.gates.spacing);
+      for (let i = 0; i < gateCount; i++) {
+        const z = slalom.zStart - c.gates.spacing * (i + 0.5);
+        const x = centerAt(z) + (i % 2 === 0 ? -1 : 1) * c.gates.laneOffset + rng.range(-2, 2);
+        gatePlacements.push({ x, z });
+        reserved.push({ x, z });
+      }
     }
 
     // --- Ramps: jump + big jump sections ------------------------------------
@@ -100,26 +120,35 @@ export class CourseGenerator {
         reserved.push({ x, z });
       }
     };
-    addRamps(jump, 2);
-    addRamps(bigJump, 3);
+    for (const range of jumpRanges) addRamps(range, 2);
+    for (const range of bigJumpRanges) addRamps(range, 3);
 
     // --- Checkpoints at section boundaries ----------------------------------
     const checkpointPlacements: CheckpointPlacement[] = [];
-    const checkpointZ = [treesSection.zEnd, slalom.zEnd, highSpeed.zEnd, bigJump.zEnd];
-    for (let i = 0; i < Math.min(c.checkpoints.count, checkpointZ.length); i++) {
-      const z = checkpointZ[i] + 20;
+    const boundaries = [
+      ...treesRanges.map((r) => r.zEnd),
+      ...slalomRanges.map((r) => r.zEnd),
+      ...highSpeedRanges.map((r) => r.zEnd),
+      ...bigJumpRanges.map((r) => r.zEnd),
+    ];
+    for (const base of boundaries) {
+      const z = base + 20;
       const x = centerAt(z);
       checkpointPlacements.push({ x, z });
       reserved.push({ x, z });
     }
 
     // --- Finish -------------------------------------------------------------
-    const finishZ = finishSection.zEnd + c.sections.finish * 0.5;
-    const finishPlacement = { x: centerAt(finishZ), z: finishZ };
-    reserved.push(finishPlacement);
+    let finishPlacement: Point | null = null;
+    if (!extras.noFinish) {
+      const last = confirmRanges[confirmRanges.length - 1];
+      const finishZ = last.zEnd + c.sections.finish * 0.5;
+      finishPlacement = { x: centerAt(finishZ), z: finishZ };
+      reserved.push(finishPlacement);
+    }
 
     // --- Vegetation scattered across the tree + high speed sections ---------
-    const scatterZones: ZRange[] = [treesSection, highSpeed];
+    const scatterZones: ZRange[] = [...treesRanges, ...highSpeedRanges];
     const scatter = (count: number, minSpacing: number, avoidScale: number): Point[] => {
       const out: Point[] = [];
       let attempts = 0;
@@ -149,9 +178,9 @@ export class CourseGenerator {
       return out;
     };
 
-    const treePoints = scatter(c.trees.count, c.trees.minSpacing, 1.3);
-    const rockPoints = scatter(c.rocks.count, c.rocks.minSpacing, 1.2);
-    const bushPoints = scatter(c.bushes.count, c.bushes.minSpacing, 0.8);
+    const treePoints = scatter(c.trees.count * repeats, c.trees.minSpacing, 1.3);
+    const rockPoints = scatter(c.rocks.count * repeats, c.rocks.minSpacing, 1.2);
+    const bushPoints = scatter(c.bushes.count * repeats, c.bushes.minSpacing, 0.8);
 
     const treePlacements = treePoints.map((p) => ({
       ...p,
@@ -205,7 +234,51 @@ export class CourseGenerator {
       return placements;
     };
     const forestPlacements = sideBand(c.forest.count, c.forest.inset, c.forest.width, 0.8, 1.5);
-    const cliffPlacements = sideBand(c.cliffs.count, c.cliffs.inset, c.cliffs.width, 1.6, 3.6);
+    const cliffPlacements = sideBand(
+      c.cliffs.count,
+      c.cliffs.inset,
+      c.cliffs.width,
+      c.cliffs.scaleMin,
+      c.cliffs.scaleMax,
+    );
+    this.cliffPlacements = cliffPlacements;
+
+    // Decorative snow drifts, scattered like the vegetation (no colliders).
+    const snowpilePlacements = scatter(
+      c.snowpiles.count * repeats,
+      c.snowpiles.minSpacing,
+      0.7,
+    ).map((p) => ({
+      ...p,
+      scale: rng.range(c.snowpiles.scaleMin, c.snowpiles.scaleMax),
+      rotation: rng.range(0, Math.PI * 2),
+    }));
+
+    // Rock walls scattered inside the corridor as obstacles (collide -> crash).
+    const innerCliffPlacements = scatter(
+      c.innerCliffs.count * repeats,
+      c.innerCliffs.minSpacing,
+      1.4,
+    ).map((p) => ({
+      ...p,
+      scale: rng.range(c.innerCliffs.scaleMin, c.innerCliffs.scaleMax),
+      rotation: rng.range(0, Math.PI * 2),
+    }));
+
+    // --- Collectibles -------------------------------------------------------
+    const itemPlacements: ItemPlacement[] = [];
+    if (extras.items) {
+      const count = Math.round(CONFIG.items.count * repeats);
+      const endZ = extras.noFinish
+        ? cursor + c.sections.finish * 0.5
+        : (finishPlacement?.z ?? cursor);
+      for (let i = 0; i < count; i++) {
+        const z = rng.range(endZ + 40, this.startZ - 40);
+        const x = centerAt(z) + rng.range(minX + 4, maxX - 4);
+        const type = rng.pick(ITEM_TYPES) as ItemType;
+        itemPlacements.push({ x, z, type });
+      }
+    }
 
     this.trees = createTreeField(physics, scene, treePlacements, models.trees);
     this.rocks = createRockField(physics, scene, rockPlacements, models.rocks);
@@ -222,17 +295,73 @@ export class CourseGenerator {
       physics,
       scene,
       placements: cliffPlacements,
-      models: models.rocks,
+      models: models.cliffs,
     });
+    this.cliffsInner =
+      innerCliffPlacements.length > 0 && models.cliffs.length > 0
+        ? new ScatterField({
+            physics,
+            scene,
+            placements: innerCliffPlacements,
+            models: models.cliffs,
+            collider: { kind: 'cliff', shape: 'ball', radius: c.innerCliffs.colliderRadius },
+          })
+        : null;
+    this.snowpiles =
+      snowpilePlacements.length > 0 && models.snowpiles.length > 0
+        ? new ScatterField({
+            physics,
+            scene,
+            placements: snowpilePlacements,
+            models: models.snowpiles,
+            collider: {
+              kind: 'snowpile',
+              shape: 'cylinder',
+              radius: c.snowpiles.colliderRadius,
+              height: c.snowpiles.colliderHeight,
+              sensor: true,
+            },
+          })
+        : null;
     this.gates = new GateField(physics, scene, gatePlacements);
-    this.ramps = new JumpRampField(physics, scene, rampPlacements);
+    this.ramps = new JumpRampField(physics, scene, rampPlacements, models.ramps);
     this.checkpoints = new CheckpointField(physics, scene, checkpointPlacements);
-    this.finish = new FinishArea(physics, scene, finishPlacement);
+    this.items = itemPlacements.length > 0 ? new ItemField(physics, scene, itemPlacements) : null;
+    this.finish = finishPlacement
+      ? new FinishArea(physics, scene, finishPlacement, models.finishArch, models.fences)
+      : null;
   }
 
   /** Clears per-run progress so a Play Again starts a fresh run. */
   reset(): void {
     for (const gate of this.gates.gates) gate.passed = false;
     for (const checkpoint of this.checkpoints.checkpoints) checkpoint.reached = false;
+    this.items?.reset();
+  }
+
+  /** Rebuilds the side rock-walls with the current Config (admin scene editor). */
+  rebuildCliffs(physics: PhysicsWorld, models: ModelLibrary): void {
+    this.cliffs.dispose(physics);
+    this.cliffs = new ScatterField({
+      physics,
+      scene: this.scene,
+      placements: this.cliffPlacements,
+      models: models.cliffs,
+    });
+  }
+
+  dispose(physics: PhysicsWorld): void {
+    this.trees.dispose(physics);
+    this.rocks.dispose(physics);
+    this.bushes.dispose(physics);
+    this.forest.dispose(physics);
+    this.cliffs.dispose(physics);
+    this.cliffsInner?.dispose(physics);
+    this.snowpiles?.dispose(physics);
+    this.gates.dispose(physics);
+    this.ramps.dispose(physics);
+    this.checkpoints.dispose(physics);
+    this.items?.dispose(physics);
+    this.finish?.dispose(physics);
   }
 }

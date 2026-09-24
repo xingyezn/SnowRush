@@ -34,6 +34,8 @@ const MESSAGES: Record<Language, Dictionary> = {
     'pause.title': '已暂停',
     'pause.resume': '继续',
     'pause.restart': '重新开始',
+    'crash.title': '摔车了！',
+    'crash.respawn': '回到存档点',
 
     'result.title': '本次滑行结束',
     'result.time': '用时',
@@ -62,6 +64,7 @@ const MESSAGES: Record<Language, Dictionary> = {
     'menu.settings': '设置',
     'menu.credits': '制作人员',
     'menu.back': '返回',
+    'menu.next': '下一步',
 
     'howto.title': '玩法说明',
     'howto.goal':
@@ -155,9 +158,25 @@ const MESSAGES: Record<Language, Dictionary> = {
     'mode.standard': '标准',
     'mode.time': '计时挑战',
     'mode.oneline': '一命通关',
+    'mode.endless': '无尽模式',
     'mode.standard.desc': '标准规则：摔车后回到最近存档点。',
     'mode.time.desc': '在限定时间内冲过终点。',
     'mode.oneline.desc': '一次摔车即结束本局。',
+    'mode.endless.desc': '超长随机赛道，没有终点，尽情滑行。',
+
+    'menu.track': '赛道',
+    'track.standard': '标准赛道',
+    'track.random': '随机赛道',
+    'track.standard.desc': '固定的 7 段赛道。',
+    'track.random.desc': '每局随机生成地形与布局。',
+
+    'item.boost': '加速',
+    'item.score': '加分',
+    'item.shield': '护盾',
+    'item.magnet': '磁铁',
+    'item.slowmo': '滞空',
+    'item.invincible': '无敌',
+    'item.pickup': '获得',
 
     'daily.title': '每日挑战',
     'daily.kind.score': '单局得分',
@@ -209,6 +228,8 @@ const MESSAGES: Record<Language, Dictionary> = {
     'pause.title': 'PAUSED',
     'pause.resume': 'RESUME',
     'pause.restart': 'RESTART',
+    'crash.title': 'CRASHED!',
+    'crash.respawn': 'RETRY CHECKPOINT',
 
     'result.title': 'RUN COMPLETE',
     'result.time': 'TIME',
@@ -237,6 +258,7 @@ const MESSAGES: Record<Language, Dictionary> = {
     'menu.settings': 'SETTINGS',
     'menu.credits': 'CREDITS',
     'menu.back': 'BACK',
+    'menu.next': 'NEXT',
 
     'howto.title': 'HOW TO PLAY',
     'howto.goal':
@@ -330,9 +352,25 @@ const MESSAGES: Record<Language, Dictionary> = {
     'mode.standard': 'Standard',
     'mode.time': 'Time Attack',
     'mode.oneline': 'One Life',
+    'mode.endless': 'Endless',
     'mode.standard.desc': 'Standard rules: crashing returns you to the last checkpoint.',
     'mode.time.desc': 'Reach the finish before the time runs out.',
     'mode.oneline.desc': 'A single crash ends the run.',
+    'mode.endless.desc': 'A very long random descent with no finish line.',
+
+    'menu.track': 'TRACK',
+    'track.standard': 'Standard',
+    'track.random': 'Random',
+    'track.standard.desc': 'The fixed 7-section course.',
+    'track.random.desc': 'A fresh random layout every run.',
+
+    'item.boost': 'Boost',
+    'item.score': 'Score',
+    'item.shield': 'Shield',
+    'item.magnet': 'Magnet',
+    'item.slowmo': 'Slow-mo',
+    'item.invincible': 'Invincible',
+    'item.pickup': 'Got',
 
     'daily.title': 'Daily Challenge',
     'daily.kind.score': 'Score in one run',
